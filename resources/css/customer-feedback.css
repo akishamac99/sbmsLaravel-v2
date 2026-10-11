@@ -1,0 +1,56 @@
+.feedback-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+    gap: 18px;
+}
+.feedback-card {
+    border: 1px solid rgba(139, 58, 82, 0.14);
+}
+.feedback-card-focus {
+    box-shadow: 0 16px 34px rgba(139, 58, 82, 0.14);
+    border-color: rgba(139, 58, 82, 0.26);
+}
+.feedback-meta {
+    color: var(--brown-medium);
+    font-size: 13px;
+    margin-bottom: 14px;
+}
+.feedback-form {
+    display: grid;
+    gap: 14px;
+}
+.star-rating {
+    display: flex;
+    gap: 8px;
+}
+.star {
+    border: none;
+    background: transparent;
+    font-size: 28px;
+    color: #d8c8cd;
+    cursor: pointer;
+    line-height: 1;
+}
+.star.active {
+    color: #c5a15b;
+}
+.feedback-history {
+    display: grid;
+    gap: 14px;
+}
+.feedback-history-item {
+    border: 1px solid rgba(139, 58, 82, 0.12);
+    border-radius: 12px;
+    padding: 16px;
+    background: #fff;
+}
+.feedback-history-head {
+    display: flex;
+    justify-content: space-between;
+    gap: 14px;
+    margin-bottom: 10px;
+}
+.feedback-history-stars {
+    color: #c5a15b;
+    white-space: nowrap;
+}

@@ -1,0 +1,36 @@
+.profile-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 16px;
+}
+.profile-grid label {
+    display: grid;
+    gap: 6px;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--brown-medium);
+}
+.profile-grid .span-all { grid-column: 1 / -1; }
+.profile-actions { align-self: end; }
+.profile-readonly {
+    background: rgba(139, 58, 82, 0.05);
+    cursor: not-allowed;
+}
+.profile-hint {
+    font-size: 12px;
+    color: var(--brown-medium);
+    font-weight: 400;
+}
+.pw-field { position: relative; display: block; }
+.pw-field .form-control { padding-right: 44px; width: 100%; }
+.pw-toggle {
+    position: absolute;
+    right: 8px;
+    top: 50%;
+    transform: translateY(-50%);
+    border: 0;
+    background: transparent;
+    color: var(--brown-medium);
+    cursor: pointer;
+    padding: 6px;
+}

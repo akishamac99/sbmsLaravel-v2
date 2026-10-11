@@ -1,0 +1,183 @@
+.service-filter-panel {
+    display: grid;
+    gap: 14px;
+    margin-bottom: 24px;
+    padding: 16px;
+    border: 1px solid rgba(139, 58, 82, 0.13);
+    border-radius: 12px;
+    background: #fdf6f8;
+}
+.service-filter-chips {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+.service-filter-chip {
+    border: 1px solid rgba(139, 58, 82, 0.14);
+    background: #fff;
+    color: var(--brown-medium);
+    border-radius: 999px;
+    padding: 8px 12px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 12px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+.service-filter-chip:hover,
+.service-filter-chip.active {
+    background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+    color: #fff;
+    border-color: var(--primary);
+    box-shadow: 0 10px 22px rgba(139, 58, 82, 0.18);
+}
+.category-section {
+    margin-bottom: 30px;
+}
+.category-title {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 26px;
+    color: var(--primary);
+    margin-bottom: 16px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid rgba(197, 161, 91, 0.4);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+.category-title i {
+    font-size: 24px;
+}
+.event-badge {
+    background: var(--rose-gold);
+    color: var(--brown-dark);
+    font-size: 12px;
+    padding: 2px 10px;
+    border-radius: 20px;
+    margin-left: 10px;
+}
+.services-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+    gap: 16px;
+}
+.service-card {
+    background: white;
+    border: 1px solid rgba(139, 58, 82, 0.13);
+    border-radius: 12px;
+    overflow: hidden;
+    transition: all 0.2s ease;
+    position: relative;
+}
+.service-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 14px 30px rgba(139, 58, 82, 0.12);
+}
+.service-img {
+    height: 140px;
+    background-size: cover;
+    background-position: center;
+    background-color: var(--pink-light);
+    position: relative;
+    overflow: hidden;
+}
+.service-img::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background:
+        linear-gradient(90deg, rgba(255, 237, 245, 0.06) 0%, rgba(244, 143, 177, 0.25) 70%, rgba(236, 72, 153, 0.22) 100%),
+        linear-gradient(180deg, rgba(255, 192, 203, 0.03), rgba(190, 24, 93, 0.08));
+    pointer-events: none;
+}
+.service-info {
+    padding: 15px;
+    display: grid;
+    gap: 9px;
+}
+.service-info h3 {
+    font-size: 16px;
+    color: var(--brown-dark);
+    line-height: 1.25;
+}
+.service-info p {
+    font-size: 12px;
+    color: var(--brown-medium);
+    line-height: 1.5;
+}
+.service-price {
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--primary);
+}
+.service-card-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+.service-duration {
+    font-size: 12px;
+    color: var(--brown-medium);
+}
+.service-card-action {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    width: 36px;
+    height: 36px;
+    border: none;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+    color: #fff;
+    box-shadow: 0 10px 22px rgba(139, 58, 82, 0.28);
+    cursor: pointer;
+    z-index: 2;
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+.service-card-action:hover {
+    transform: translateY(-1px) scale(1.03);
+    box-shadow: 0 14px 28px rgba(139, 58, 82, 0.34);
+}
+.home-service-badge {
+    display: inline-block;
+    margin-top: 8px;
+    background: rgba(197, 161, 91, 0.15);
+    color: var(--rose-gold);
+    font-size: 11px;
+    padding: 3px 8px;
+    border-radius: 20px;
+}
+.cart-sidebar h3 {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 24px;
+    color: var(--brown-dark);
+}
+.cart-sidebar-item {
+    border: 1px solid rgba(139, 58, 82, 0.12);
+    border-radius: 10px;
+    padding: 12px;
+    margin-bottom: 10px;
+    background: #fff;
+}
+.cart-sidebar-total {
+    border-top: 1px solid rgba(139, 58, 82, 0.14);
+    margin-top: 12px;
+    padding-top: 14px;
+}
+.sticky-booking-cart {
+    position: sticky;
+    top: 24px;
+}
+@media (max-width: 700px) {
+    .service-filter-panel {
+        padding: 12px;
+    }
+    .services-grid {
+        grid-template-columns: 1fr;
+    }
+    .sticky-booking-cart {
+        position: static;
+    }
+}

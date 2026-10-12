@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Service;
 use App\Models\ServiceCategory;
 use App\Services\BookingService;
+use App\Support\TimeSlots;
 use Illuminate\Support\Facades\DB;
 use Illuminate\View\View;
 
@@ -52,9 +53,9 @@ class LandingController extends Controller
             ->join('customer as c', 'f.customerID', '=', 'c.customerID')
             ->leftJoin('salon_staff as st', 'f.staffID', '=', 'st.staffID')
             ->whereRaw("TRIM(COALESCE(f.comment, '')) <> ''")
-            ->orderByRaw('COALESCE(f.rating, f.service_rating, 0) DESC')
             ->orderByDesc('f.created_at')
-            ->limit(6)
+            ->orderByDesc('f.feedbackID')
+            ->limit(12)
             ->get([
                 'f.rating', 'f.service_rating', 'f.comment', 's.serviceName',
                 'c.firstName', 'c.lastName',
@@ -68,10 +69,19 @@ class LandingController extends Controller
                 'staffName' => trim(($row->staffFirst ?? '') . ' ' . ($row->staffLast ?? '')),
             ]);
 
+        $feedbackTotals = DB::table('feedback')
+            ->selectRaw('COUNT(*) as total, AVG(COALESCE(rating, service_rating)) as average')
+            ->first();
+
         return view('landing', [
             'categories' => $categories,
             'popularServices' => $popularServices,
             'testimonials' => $testimonials,
+            'feedbackSummary' => (object) [
+                'total' => (int) ($feedbackTotals->total ?? 0),
+                'average' => $feedbackTotals->average !== null ? round((float) $feedbackTotals->average, 1) : null,
+            ],
+            'openingHours' => TimeSlots::summary(),
             'gallery' => array_map(fn ($file) => asset('assets/images/' . $file), self::GALLERY),
         ]);
     }

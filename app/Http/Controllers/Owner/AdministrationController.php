@@ -24,6 +24,19 @@ class AdministrationController extends Controller
 {
     private const MODULES = ['bookings', 'walkin', 'payments', 'reports', 'attendance', 'customers', 'staff', 'services'];
 
+    // 'owner' or 'manager': used in the activity log and to limit what a manager may touch.
+    private function actor(): string
+    {
+        return Auth::guard('staff')->user()->role_slug;
+    }
+
+    // Nobody edits the owner. Managers may only manage Staff accounts.
+    private function guardStaffTarget(Staff $staff): void
+    {
+        abort_if($staff->isOwner(), 403);
+        abort_if($this->actor() === 'manager' && $staff->role !== 'Staff', 403, 'Managers can only manage Staff accounts.');
+    }
+
     public function staff(Request $request): View
     {
         $request->validate([
@@ -56,16 +69,20 @@ class AdministrationController extends Controller
 
     public function toggleStaff(Staff $staff): RedirectResponse
     {
-        abort_if($staff->isOwner(), 403);
+        $this->guardStaffTarget($staff);
 
         $staff->update(['is_active' => ! $staff->is_active]);
-        SystemLog::record('owner', (int) Auth::guard('staff')->id(), 'toggle_staff', ($staff->is_active ? 'Activated' : 'Deactivated')." staff account {$staff->username}");
+        SystemLog::record($this->actor(), (int) Auth::guard('staff')->id(), 'toggle_staff', ($staff->is_active ? 'Activated' : 'Deactivated')." staff account {$staff->username}");
 
         return back()->with('status', $staff->is_active ? 'Staff account activated.' : 'Staff account deactivated. They can no longer log in.');
     }
 
     public function createStaff(Request $request): RedirectResponse
     {
+        if ($this->actor() === 'manager') {
+            $request->merge(['role' => 'Staff']);
+        }
+
         $validated = $request->validate([
             'firstName' => ['required', 'string', 'max:50'],
             'lastName' => ['required', 'string', 'max:50'],
@@ -84,14 +101,17 @@ class AdministrationController extends Controller
             StaffAvailability::openAllWeek((int) $staff->getKey());
         }
 
-        SystemLog::record('owner', (int) Auth::guard('staff')->id(), 'create_staff', "Created {$staff->role} account {$staff->username}");
+        SystemLog::record($this->actor(), (int) Auth::guard('staff')->id(), 'create_staff', "Created {$staff->role} account {$staff->username}");
 
         return back()->with('status', 'Staff account created.');
     }
 
     public function updateStaff(Request $request, Staff $staff): RedirectResponse
     {
-        abort_if($staff->isOwner(), 403);
+        $this->guardStaffTarget($staff);
+        if ($this->actor() === 'manager') {
+            $request->merge(['role' => 'Staff']);
+        }
 
         $validated = $request->validate([
             'firstName' => ['required', 'string', 'max:50'],
@@ -105,16 +125,17 @@ class AdministrationController extends Controller
         ]);
 
         $staff->update($validated);
-        SystemLog::record('owner', (int) Auth::guard('staff')->id(), 'update_staff', "Updated staff account {$staff->username}");
+        SystemLog::record($this->actor(), (int) Auth::guard('staff')->id(), 'update_staff', "Updated staff account {$staff->username}");
 
         return back()->with('status', 'Staff account updated.');
     }
 
     public function archiveStaff(Staff $staff): RedirectResponse
     {
-        abort_if($staff->isOwner() || (int) $staff->getKey() === (int) Auth::guard('staff')->id(), 403);
+        $this->guardStaffTarget($staff);
+        abort_if((int) $staff->getKey() === (int) Auth::guard('staff')->id(), 403);
         $staff->update(['is_active' => 0, 'is_archived' => 1]);
-        SystemLog::record('owner', (int) Auth::guard('staff')->id(), 'archive_staff', "Archived staff account {$staff->username}");
+        SystemLog::record($this->actor(), (int) Auth::guard('staff')->id(), 'archive_staff', "Archived staff account {$staff->username}");
 
         return back()->with('status', 'Staff account archived; appointment history was preserved.');
     }
@@ -314,7 +335,7 @@ class AdministrationController extends Controller
         $validated['image'] = $request->hasFile('image') ? $this->storeServiceImage($request) : null;
 
         $service = Service::create($validated + ['is_active' => 1]);
-        SystemLog::record('owner', (int) Auth::guard('staff')->id(), 'create_service', "Created service {$service->serviceName}");
+        SystemLog::record($this->actor(), (int) Auth::guard('staff')->id(), 'create_service', "Created service {$service->serviceName}");
 
         return back()->with('status', 'Service added to the catalog.');
     }
@@ -336,7 +357,7 @@ class AdministrationController extends Controller
             Storage::disk('public')->delete($oldImage);
         }
 
-        SystemLog::record('owner', (int) Auth::guard('staff')->id(), 'update_service', "Updated service {$service->serviceName}");
+        SystemLog::record($this->actor(), (int) Auth::guard('staff')->id(), 'update_service', "Updated service {$service->serviceName}");
 
         return back()->with('status', 'Service updated.');
     }
@@ -382,7 +403,7 @@ class AdministrationController extends Controller
     public function toggleService(Service $service): RedirectResponse
     {
         $service->update(['is_active' => ! $service->is_active]);
-        SystemLog::record('owner', (int) Auth::guard('staff')->id(), 'toggle_service', "Changed availability for {$service->serviceName}");
+        SystemLog::record($this->actor(), (int) Auth::guard('staff')->id(), 'toggle_service', "Changed availability for {$service->serviceName}");
 
         return back()->with('status', 'Service availability updated.');
     }

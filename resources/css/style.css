@@ -2315,65 +2315,59 @@ select.form-control { cursor: pointer; }
     gap: 8px;
     margin-top: 0;
 }
-/* ── Time Picker ─────────────────────────────────────── */
-.time-picker-wrapper { position: static; }
+/* ── Time slot picker ────────────────────────────────── */
+.slot-picker { display: block; }
 
-.time-picker-display {
-    display: flex; align-items: center; gap: 10px;
-    padding: 10px 14px; border: 1.5px solid var(--border);
-    border-radius: 10px; cursor: pointer; background: var(--surface);
-    color: var(--text-muted); font-size: 0.95rem;
-    transition: border-color .2s, box-shadow .2s;
-    user-select: none;
+.slot-legend {
+    display: flex; flex-wrap: wrap; gap: 6px 14px;
+    margin-bottom: 8px; font-size: .75rem; color: var(--brown-light);
 }
-.time-picker-display:hover,
-.time-picker-wrapper.active .time-picker-display {
-    border-color: var(--primary); box-shadow: 0 0 0 3px rgba(139,58,82,.1);
-}
-.time-picker-display.has-value { color: var(--text); font-weight: 500; }
-.time-picker-display .fa-clock { color: var(--primary); font-size: 1rem; }
-.time-picker-display span { flex: 1; }
-.time-picker-chevron {
-    font-size: .8rem; color: var(--text-muted);
-    transition: transform .25s;
-}
-.time-picker-wrapper.active .time-picker-chevron { transform: rotate(180deg); }
+.slot-legend span { display: inline-flex; align-items: center; gap: 6px; }
+.slot-dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; border: 1.5px solid transparent; }
+.slot-dot.is-open { background: var(--success-bg); border-color: var(--success); }
+.slot-dot.is-few { background: var(--warning-bg); border-color: var(--warning); }
+.slot-dot.is-full { background: #eee; border-color: #c9c0c3; }
+.slot-dot.is-selected { background: var(--primary); border-color: var(--primary); }
 
-.time-picker-dropdown {
-    display: none;
-    background: var(--surface); border: 1.5px solid var(--border);
-    border-radius: 12px; box-shadow: 0 4px 16px rgba(0,0,0,.08);
-    padding: 12px; max-height: 260px; overflow-y: auto;
-    margin-top: 6px;
-}
-.time-picker-dropdown.open { display: block; }
+.slot-status { margin: 0 0 10px; font-size: .85rem; color: var(--brown-medium); }
+.slot-status[hidden] { display: none; }
 
-.time-period-group + .time-period-group { margin-top: 12px; }
+.slot-groups { max-height: 300px; overflow-y: auto; padding: 2px; }
+.slot-group + .slot-group { margin-top: 14px; }
+
 .time-period-label {
     font-size: .7rem; font-weight: 700; letter-spacing: .08em;
     text-transform: uppercase; color: var(--primary);
     margin-bottom: 8px; padding-left: 2px;
 }
 
-.time-slots-grid {
-    display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px;
-}
+.slot-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
 
-.time-slot-btn {
-    padding: 8px 4px; border: 1.5px solid var(--border);
-    border-radius: 8px; background: var(--bg);
-    color: var(--text); font-size: .82rem; font-weight: 500;
-    cursor: pointer; text-align: center;
-    transition: all .15s ease;
+.slot-btn {
+    display: flex; flex-direction: column; align-items: center; gap: 2px;
+    padding: 9px 4px; border: 1.5px solid transparent; border-radius: 10px;
+    font: inherit; cursor: pointer;
+    transition: transform .15s ease, box-shadow .15s ease, background .15s ease;
 }
-.time-slot-btn:hover {
-    border-color: var(--primary); background: rgba(139,58,82,.07);
-    color: var(--primary);
+.slot-time { font-weight: 600; font-size: .88rem; }
+.slot-note { font-size: .68rem; letter-spacing: .02em; }
+
+.slot-btn.is-open { background: var(--success-bg); border-color: rgba(46,125,50,.35); color: var(--success); }
+.slot-btn.is-few { background: var(--warning-bg); border-color: rgba(192,94,0,.4); color: var(--warning); }
+.slot-btn.is-open:hover, .slot-btn.is-few:hover { transform: translateY(-1px); box-shadow: var(--shadow-sm); }
+
+.slot-btn.is-full, .slot-btn.is-past {
+    background: #f3eff0; border-color: #e3dadd; color: #a79ca1; cursor: not-allowed;
 }
-.time-slot-btn.selected {
-    background: var(--primary); border-color: var(--primary);
-    color: #fff; font-weight: 600;
+.slot-btn.is-full .slot-time, .slot-btn.is-past .slot-time { text-decoration: line-through; font-weight: 500; }
+
+.slot-btn.is-selected {
+    background: var(--primary); border-color: var(--primary); color: #fff;
+    box-shadow: 0 0 0 3px rgba(139,58,82,.18);
 }
+.slot-btn:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
+
+@media (max-width: 480px) { .slot-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 @media (max-width: 768px) {
     .customer-portal { --customer-sidebar: 70px; }
     .customer-list-item { flex-direction: column; }

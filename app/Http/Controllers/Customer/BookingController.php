@@ -92,7 +92,7 @@ class BookingController extends Controller
 
         $data = $request->validate([
             'booking_date' => ['required', 'date_format:Y-m-d', 'after_or_equal:'.$this->earliestDate()->toDateString(), 'before_or_equal:'.today()->addDays(30)->toDateString()],
-            'booking_time' => ['required', Rule::in(TimeSlots::values())],
+            'booking_time' => ['required', Rule::in(TimeSlots::values()), TimeSlots::openOn($request->input('booking_date'))],
             'staff_id' => ['required', 'integer', 'exists:salon_staff,staffID'],
         ], [
             'booking_date.after_or_equal' => 'Choose a date at least '.SystemPolicy::cancellationWindowHours().' hours from now.',

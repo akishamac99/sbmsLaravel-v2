@@ -179,7 +179,7 @@ class ServiceController extends Controller
         return [
             'staff_id' => ['nullable', 'integer'],
             'booking_date' => ['required', 'date_format:Y-m-d', 'after_or_equal:today', 'before_or_equal:'.today()->addDays(30)->toDateString()],
-            'booking_time' => ['required', Rule::in(TimeSlots::values())],
+            'booking_time' => ['required', Rule::in(TimeSlots::values()), TimeSlots::openOn(request('booking_date'))],
             'notes' => ['nullable', 'string', 'max:500'],
             'special_request' => ['nullable', 'string', 'max:500'],
         ];

@@ -294,7 +294,10 @@ class WalkinController extends Controller
     {
         $currentSlotStart = now()->copy()->setSecond(0)->subMinutes(now()->minute % 30)->format('H:i:s');
 
-        return array_values(array_filter(TimeSlots::values(), fn (string $slot): bool => $slot >= $currentSlotStart));
+        return array_values(array_filter(
+            array_keys(TimeSlots::forDate(today()->toDateString())),
+            fn (string $slot): bool => $slot >= $currentSlotStart
+        ));
     }
 
     private function walkinsEnabled(): bool

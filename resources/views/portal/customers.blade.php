@@ -11,7 +11,7 @@
             <h1>Customers</h1>
             <p>Registered accounts and walk-in customers, with their booking history.</p>
         </div>
-        @if ($role === 'owner')
+        @if ($canEdit)
             <div class="page-actions">
                 <button type="button" class="btn-ghost btn-sm" onclick="openModal('statusHelp')"><i class="fas fa-circle-info"></i> About account status</button>
             </div>
@@ -42,7 +42,7 @@
 
         <div class="table-scroll">
             <table class="list-table">
-                <thead><tr><th>Customer</th><th>Contact</th><th>Type</th><th>Account</th><th class="num">Bookings</th><th>Last visit</th><th>Since</th>@if ($role === 'owner')<th class="col-actions"><span class="sr-only">Actions</span></th>@endif</tr></thead>
+                <thead><tr><th>Customer</th><th>Contact</th><th>Type</th><th>Account</th><th class="num">Bookings</th><th>Last visit</th><th>Since</th>@if ($canEdit)<th class="col-actions"><span class="sr-only">Actions</span></th>@endif</tr></thead>
                 <tbody>
                     @forelse ($customers as $customer)
                         <tr>
@@ -71,7 +71,7 @@
                             <td class="num">{{ $customer->bookings_count }}</td>
                             <td class="nowrap">{{ $customer->bookings_max_booking_date ? \Illuminate\Support\Carbon::parse($customer->bookings_max_booking_date)->format('M d, Y') : '—' }}</td>
                             <td class="nowrap">{{ $customer->createdAt?->format('M d, Y') }}</td>
-                            @if ($role === 'owner')
+                            @if ($canEdit)
                                 <td class="col-actions">
                                     @unless ($customer->is_walkin)
                                         <div class="row-menu">
@@ -79,7 +79,7 @@
                                             <div class="menu-dropdown">
                                                 @foreach (['active' => ['Activate', 'fa-user-check', 'menu-success'], 'inactive' => ['Deactivate', 'fa-user-slash', ''], 'blocked' => ['Block', 'fa-ban', 'menu-danger']] as $status => [$label, $icon, $class])
                                                     @if ($customer->accountStatus !== $status)
-                                                        <form method="POST" action="{{ route('owner.customers.status', $customer) }}" @if ($status === 'blocked') onsubmit="return confirm('Block {{ $customer->full_name }}? They will not be able to log in or book.')" @endif>
+                                                        <form method="POST" action="{{ route($role . '.customers.status', $customer) }}" @if ($status === 'blocked') onsubmit="return confirm('Block {{ $customer->full_name }}? They will not be able to log in or book.')" @endif>
                                                             @csrf
                                                             <input type="hidden" name="accountStatus" value="{{ $status }}">
                                                             <button type="submit" class="{{ $class }}"><i class="fas {{ $icon }}"></i> {{ $label }}</button>
@@ -101,7 +101,7 @@
         {{ $customers->links() }}
     </section>
 
-    @if ($role === 'owner')
+    @if ($canEdit)
         <div class="modal" id="statusHelp" role="dialog" aria-modal="true" aria-labelledby="statusHelpTitle">
             <div class="modal-content">
                 <div class="modal-header"><h3 id="statusHelpTitle">Account status</h3><button type="button" class="close-modal" aria-label="Close">&times;</button></div>

@@ -44,41 +44,11 @@ if (root) {
         if (empty) empty.style.display = visibleTotal === 0 ? 'block' : 'none';
     }
 
-    /* ---------------------------------------------------------------- time picker */
+    /* ---------------------------------------------------------------- time picker (see slot-picker.js) */
 
-    function closePickers() {
-        document.querySelectorAll('.time-picker-dropdown.open').forEach((d) => d.classList.remove('open'));
-        document.querySelectorAll('.time-picker-wrapper.active').forEach((w) => w.classList.remove('active'));
-    }
-
-    function togglePicker(wrapper) {
-        const dropdown = wrapper.querySelector('.time-picker-dropdown');
-        const wasOpen = dropdown.classList.contains('open');
-
-        closePickers();
-
-        if (!wasOpen) {
-            dropdown.classList.add('open');
-            wrapper.classList.add('active');
-        }
-    }
-
-    function setTime(wrapper, value, label = '') {
-        const hidden = wrapper.querySelector('input[type=hidden]');
-        const display = wrapper.querySelector('.time-picker-display');
-        const buttons = wrapper.querySelectorAll('.time-slot-btn');
-
-        buttons.forEach((b) => b.classList.remove('selected'));
-        hidden.value = value;
-
-        const chosen = [...buttons].find((b) => b.dataset.value === value);
-        if (chosen) chosen.classList.add('selected');
-
-        display.querySelector('span').textContent = label || chosen?.dataset.label || 'Select time';
-        display.classList.toggle('has-value', Boolean(value));
-
-        closePickers();
-        hidden.dispatchEvent(new Event('change', { bubbles: true }));
+    // Choose a time in a form's slot picker ('' clears it). The picker loads the slots for the chosen date.
+    function setTime(picker, value) {
+        picker.dispatchEvent(new CustomEvent('slot:set', { detail: { value } }));
     }
 
     /* ---------------------------------------------------------------- live staff list */
@@ -95,7 +65,7 @@ if (root) {
     // Ask the server who is qualified and free for this service, date and time.
     async function refreshStaff(form, selectedStaffId = '') {
         const date = form.querySelector('[name=booking_date]').value;
-        const time = form.querySelector('.time-picker-wrapper input[type=hidden]').value;
+        const time = form.querySelector('.slot-picker input[type=hidden]').value;
         const hintEl = form.querySelector('[data-staff-hint]');
 
         if (!date || !time) {
@@ -149,7 +119,7 @@ if (root) {
         form.dataset.serviceId = d.serviceId;
         form.querySelector('#serviceName').value = `${d.name} - PHP ${d.price} (${d.duration})`;
         form.querySelector('[name=booking_date]').value = '';
-        setTime(form.querySelector('.time-picker-wrapper'), '');
+        setTime(form.querySelector('.slot-picker'), '');
         setStaffMessage(form, 'Choose date and time first', 'Available and qualified staff will appear after selecting a date and time.');
 
         const warning = document.getElementById('homeServiceWarning');
@@ -170,7 +140,7 @@ if (root) {
         form.dataset.serviceId = item.serviceID;
         form.querySelector('#editServiceName').value = `${item.serviceName} - PHP ${item.servicePrice}`;
         form.querySelector('[name=booking_date]').value = item.bookingDate || '';
-        setTime(form.querySelector('.time-picker-wrapper'), item.bookingTime || '');
+        setTime(form.querySelector('.slot-picker'), item.bookingTime || '');
         form.querySelector('[name=special_request]').value = item.special_request || '';
         form.querySelector('[name=notes]').value = item.notes || '';
 
@@ -238,19 +208,6 @@ if (root) {
             return;
         }
 
-        const slot = target.closest('.time-slot-btn');
-        if (slot) {
-            setTime(slot.closest('.time-picker-wrapper'), slot.dataset.value, slot.dataset.label);
-            return;
-        }
-
-        const display = target.closest('.time-picker-display');
-        if (display) {
-            togglePicker(display.closest('.time-picker-wrapper'));
-            return;
-        }
-
-        if (!target.closest('.time-picker-wrapper')) closePickers();
     });
 
     document.addEventListener('input', (event) => {

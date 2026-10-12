@@ -43,13 +43,9 @@
                     <input type="date" name="booking_date" class="form-control" min="{{ $minDate }}" max="{{ $maxDate }}"
                            value="{{ old('booking_date', max($minDate, $booking->bookingDate->toDateString())) }}" required>
                 </label>
-                <label class="field"><span class="field-label">New time <span class="req" aria-hidden="true">*</span></span>
-                    <select name="booking_time" class="form-control" required>
-                        @foreach ($timeSlots as $value => $label)
-                            <option value="{{ $value }}" @selected(old('booking_time', $currentTime) === $value)>{{ $label }}</option>
-                        @endforeach
-                    </select>
-                </label>
+                <div class="field field-full"><span class="field-label">New time <span class="req" aria-hidden="true">*</span></span>
+                    @include('customer.partials.time-picker', ['id' => 'reschedulePicker', 'value' => old('booking_time', $currentTime)])
+                </div>
                 <label class="field field-full"><span class="field-label">Staff <span class="req" aria-hidden="true">*</span></span>
                     <select name="staff_id" class="form-control" required>
                         <option value="">Choose a date and time first</option>
@@ -79,7 +75,11 @@
         function load() {
             var mine = ++ticket;
             if (staff.value) preferred = staff.value;
-            if (!date.value || !time.value) return;
+            if (!date.value || !time.value) {
+                staff.disabled = false;
+                staff.innerHTML = '<option value="">Choose a date and time first</option>';
+                return;
+            }
             staff.disabled = true;
             staff.innerHTML = '<option value="">Checking who is free…</option>';
             var query = new URLSearchParams({ date: date.value, time: time.value, service_id: form.dataset.serviceId, booking: form.dataset.booking });

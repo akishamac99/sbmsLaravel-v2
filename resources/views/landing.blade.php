@@ -48,7 +48,7 @@
                     </div>
                     <div class="hero-steps">
                         <div class="hero-step"><i class="fas fa-list"></i><span>{{ $categories->count() }} curated service categories</span></div>
-                        <div class="hero-step"><i class="fas fa-clock"></i><span>Open daily from 7AM to 10PM</span></div>
+                        <div class="hero-step"><i class="fas fa-clock"></i><span>Open {{ $openingHours }}</span></div>
                         <div class="hero-step"><i class="fas fa-home"></i><span>Makeup services available for home appointments</span></div>
                     </div>
                 </div>
@@ -147,18 +147,27 @@
         </section>
 
         @if ($testimonials->isNotEmpty())
-            <section class="section story">
+            <section id="reviews" class="section story">
                 <div class="section-inner">
                     <div class="section-head">
                         <div>
                             <span class="eyebrow"><i class="fas fa-comments"></i> Client Feedback</span>
                             <h2>What clients say after their appointments.</h2>
                         </div>
-                        <p>Recent customer feedback from completed bookings across hair, makeup, nails, and in-salon care.</p>
+                        <p>The latest feedback from completed bookings across hair, makeup, nails, and in-salon care.</p>
                     </div>
+
+                    @if ($feedbackSummary->total > 0 && $feedbackSummary->average !== null)
+                        <p class="testimonial-summary">
+                            <strong>{{ number_format($feedbackSummary->average, 1) }}</strong>
+                            <span class="testimonial-stars" aria-hidden="true">★</span>
+                            from {{ $feedbackSummary->total }} {{ \Illuminate\Support\Str::plural('review', $feedbackSummary->total) }}
+                        </p>
+                    @endif
+
                     <div class="testimonial-grid">
                         @foreach ($testimonials as $testimonial)
-                            <article class="testimonial-card">
+                            <article class="testimonial-card" @if ($loop->iteration > 6) data-extra-review hidden @endif>
                                 <div class="testimonial-stars" aria-label="{{ $testimonial->stars }} out of 5 stars">{{ str_repeat('★', $testimonial->stars) }}</div>
                                 <p class="testimonial-copy">&ldquo;{{ $testimonial->comment }}&rdquo;</p>
                                 <div class="testimonial-meta">
@@ -168,6 +177,18 @@
                             </article>
                         @endforeach
                     </div>
+
+                    @if ($testimonials->count() > 6)
+                        <p style="text-align:center;margin-top:20px">
+                            <button type="button" class="btn-ghost" id="moreReviews">Show more reviews</button>
+                        </p>
+                        <script>
+                            document.getElementById('moreReviews').addEventListener('click', function () {
+                                document.querySelectorAll('[data-extra-review]').forEach(function (card) { card.hidden = false; });
+                                this.parentElement.remove();
+                            });
+                        </script>
+                    @endif
                 </div>
             </section>
         @endif

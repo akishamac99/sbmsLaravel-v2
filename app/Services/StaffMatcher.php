@@ -8,6 +8,7 @@ use App\Models\Staff;
 use App\Models\StaffAvailability;
 use App\Models\StaffUnavailability;
 use Carbon\Carbon;
+use App\Support\TimeSlots;
 use Illuminate\Database\Eloquent\Collection;
 
 // Decides which staff member can do which service, and who is free at a given date and time.
@@ -240,6 +241,56 @@ class StaffMatcher
         return $service
             ? $staff->filter(fn (Staff $s) => $this->isQualified($s, $service))->values()
             : $staff->take(0);
+    }
+
+    // For the booking screen: how many people could take each time slot on this date?
+    // ['09:00:00' => 2, '09:30:00' => 0, ...]. A few queries in total, not one per slot.
+    public function slotCounts(string $date, ?int $serviceId = null, ?int $excludeBookingId = null): array
+    {
+        $slots = TimeSlots::forDate($date);
+
+        if ($slots === []) {
+            return [];
+        }
+
+        $day = Carbon::parse($date)->format('l');
+
+        $staff = Staff::query()
+            ->where('is_active', 1)
+            ->where('is_archived', 0)
+            ->whereIn('role', ['Owner', 'Staff', 'Manager'])
+            ->whereHas('availability', fn ($q) => $q->where('day_of_week', $day)->where('is_available', 1))
+            ->whereDoesntHave('unavailability', fn ($q) => $q->whereDate('unavailable_date', $date))
+            ->with(['availability' => fn ($q) => $q->where('day_of_week', $day)->where('is_available', 1)])
+            ->get();
+
+        if ($serviceId) {
+            $service = Service::with('category')->find($serviceId);
+            $staff = $service ? $staff->filter(fn (Staff $s) => $this->isQualified($s, $service))->values() : $staff->take(0);
+        }
+
+        $taken = Booking::whereDate('bookingDate', $date)
+            ->whereIn('staffID', $staff->pluck('staffID')->values()->all())
+            ->whereNotIn('bookingStatus', self::FREED_STATUSES)
+            ->when($excludeBookingId, fn ($q) => $q->where('bookingID', '<>', $excludeBookingId))
+            ->get(['staffID', 'bookingTime'])
+            ->groupBy('staffID')
+            ->map(fn ($rows) => $rows->map(fn ($row) => $this->normalizeTime((string) $row->bookingTime))->all());
+
+        $counts = [];
+
+        foreach ($slots as $time => $label) {
+            $counts[$time] = $staff->filter(function (Staff $s) use ($time, $taken): bool {
+                $window = $s->availability->first();
+
+                return $window
+                    && $this->normalizeTime((string) $window->start_time) <= $time
+                    && $this->normalizeTime((string) $window->end_time) > $time
+                    && ! in_array($time, $taken->get($s->getKey(), []), true);
+            })->count();
+        }
+
+        return $counts;
     }
 
     // "9:00", "09:00" and "09:00:00" all become "09:00:00".

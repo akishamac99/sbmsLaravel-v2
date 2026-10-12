@@ -162,29 +162,49 @@ class OperationsController extends Controller
     public function updateAttendance(Request $request, Booking $booking): RedirectResponse
     {
         $validated = $request->validate(['attendance_status' => ['required', 'in:present,no-show']]);
+        $attendance = $validated['attendance_status'];
+        $newStatus = $attendance === 'present' ? 'completed' : 'no-show';
 
         if ($booking->is_walkin) {
             return back()->with('error', 'Walk-ins are checked in on arrival. Use "Mark completed" when the service is done.');
         }
 
-        if ($booking->bookingStatus !== 'approved') {
+        if (! in_array($booking->bookingStatus, ['approved', 'completed', 'no-show'], true)) {
             return back()->with('error', 'Attendance can only be recorded for approved bookings.');
         }
 
-        DB::transaction(function () use ($booking, $validated): void {
+        $previous = $booking->bookingStatus;
+        $isCorrection = $previous !== 'approved';
+
+        if ($isCorrection && $previous === $newStatus) {
+            return back()->with('error', 'This booking is already marked '.$attendance.'.');
+        }
+
+        if ($isCorrection && $newStatus === 'no-show' && $booking->feedback()->exists()) {
+            return back()->with('error', 'The customer already rated this appointment, so it cannot be changed to no-show.');
+        }
+
+        DB::transaction(function () use ($booking, $attendance, $newStatus): void {
             $booking->update([
-                'attendance_status' => $validated['attendance_status'],
-                'bookingStatus' => $validated['attendance_status'] === 'present' ? 'completed' : 'no-show',
+                'attendance_status' => $attendance,
+                'bookingStatus' => $newStatus,
             ]);
 
-            if ($validated['attendance_status'] === 'present') {
+            if ($attendance === 'present') {
                 UserNotification::send('customer', (int) $booking->customerID, 'Service Completed', 'Your service has been completed. Thank you for visiting!');
             }
         });
 
-        SystemLog::record($this->role(), (int) Auth::guard('staff')->id(), 'update_attendance', "Marked {$booking->bookingRef} as {$validated['attendance_status']}");
+        SystemLog::record(
+            $this->role(),
+            (int) Auth::guard('staff')->id(),
+            $isCorrection ? 'correct_attendance' : 'update_attendance',
+            $isCorrection
+                ? "Corrected {$booking->bookingRef} from {$previous} to {$newStatus}"
+                : "Marked {$booking->bookingRef} as {$attendance}"
+        );
 
-        return back()->with('status', 'Attendance recorded.');
+        return back()->with('status', $isCorrection ? 'Attendance record corrected.' : 'Attendance recorded.');
     }
 
     public function customers(Request $request): View
@@ -216,6 +236,7 @@ class OperationsController extends Controller
         return view('portal.customers', [
             'customers' => $customers,
             'role' => $this->role(),
+            'canEdit' => $this->allowed('customers', 'edit'),
         ]);
     }
 
@@ -228,7 +249,7 @@ class OperationsController extends Controller
         }
 
         $customer->update($validated);
-        SystemLog::record('owner', (int) Auth::guard('staff')->id(), 'update_customer_status', "Updated account {$customer->getKey()} to {$validated['accountStatus']}");
+        SystemLog::record($this->role(), (int) Auth::guard('staff')->id(), 'update_customer_status', "Updated account {$customer->getKey()} to {$validated['accountStatus']}");
 
         return back()->with('status', 'Customer account status updated.');
     }
@@ -237,6 +258,10 @@ class OperationsController extends Controller
     {
         return view('portal.staff', [
             'staffMembers' => Staff::withCount('bookings')->where('is_archived', 0)->orderBy('firstName')->paginate(25),
+            'role' => $this->role(),
+            'canCreate' => $this->allowed('staff', 'create'),
+            'canEdit' => $this->allowed('staff', 'edit'),
+            'canDelete' => $this->allowed('staff', 'delete'),
         ]);
     }
 
@@ -269,21 +294,112 @@ class OperationsController extends Controller
             'services' => $services,
             'categories' => ServiceCategory::withCount('services')->orderBy('category_name')->get(),
             'role' => $this->role(),
+            'canCreate' => $this->allowed('services', 'create'),
+            'canEdit' => $this->allowed('services', 'edit'),
         ]);
     }
 
-    public function reports(): View
+    public function reports(Request $request): View
     {
-        $bookings = Booking::query();
+        $statuses = ['pending', 'approved', 'completed', 'declined', 'cancelled', 'no-show'];
+
+        $request->validate([
+            'from' => ['nullable', 'date_format:Y-m-d'],
+            'to' => ['nullable', 'date_format:Y-m-d'],
+            'status' => ['nullable', 'in:'.implode(',', $statuses)],
+            'type' => ['nullable', 'in:online,walkin'],
+            'staff_id' => ['nullable', 'integer'],
+            'service_id' => ['nullable', 'integer'],
+            'q' => ['nullable', 'string', 'max:100'],
+        ]);
+
+        $from = $request->query('from');
+        $to = $request->query('to');
+
+        if ($from && $to && $from > $to) {
+            [$from, $to] = [$to, $from];
+        }
+
+        $search = trim((string) $request->query('q', ''));
+
+        // Every number and table on the page comes from this one filtered set of bookings.
+        $filtered = Booking::query()
+            ->when($from, fn ($query) => $query->whereDate('booking.bookingDate', '>=', $from))
+            ->when($to, fn ($query) => $query->whereDate('booking.bookingDate', '<=', $to))
+            ->when($request->filled('status'), fn ($query) => $query->where('booking.bookingStatus', $request->query('status')))
+            ->when($request->filled('type'), fn ($query) => $query->where('booking.booking_source', $request->query('type')))
+            ->when($request->filled('staff_id'), fn ($query) => $query->where('booking.staffID', (int) $request->query('staff_id')))
+            ->when($request->filled('service_id'), fn ($query) => $query->where('booking.serviceID', (int) $request->query('service_id')))
+            ->when($search !== '', function ($query) use ($search) {
+                $like = '%'.mb_strtolower($search).'%';
+                $query->where(fn ($inner) => $inner
+                    ->whereRaw('LOWER(booking."bookingRef") LIKE ?', [$like])
+                    ->orWhereRaw('LOWER(booking.service) LIKE ?', [$like])
+                    ->orWhereHas('customer', fn ($customer) => $customer
+                        ->whereRaw('LOWER("firstName" || \' \' || "lastName") LIKE ?', [$like])
+                        ->orWhere('contactNumber', 'like', '%'.$search.'%')));
+            });
+
+        $totals = (clone $filtered)->toBase()
+            ->selectRaw('COUNT(*) as total')
+            ->selectRaw('SUM(CASE WHEN booking."bookingStatus" = \'pending\' THEN 1 ELSE 0 END) as pending')
+            ->selectRaw('SUM(CASE WHEN booking."bookingStatus" = \'completed\' THEN 1 ELSE 0 END) as completed')
+            ->selectRaw('SUM(CASE WHEN booking."bookingStatus" = \'completed\' THEN booking.total_amount ELSE 0 END) as revenue')
+            ->first();
+
+        $byService = (clone $filtered)->toBase()
+            ->whereNotIn('booking.bookingStatus', ['cancelled', 'declined', 'no-show'])
+            ->join('service as s', 'booking.serviceID', '=', 's.serviceID')
+            ->leftJoin('service_categories as c', 's.catID', '=', 'c.catID')
+            ->groupBy('s.serviceID', 's.serviceName', 'c.category_name')
+            ->select('s.serviceName', 'c.category_name as category')
+            ->selectRaw('COUNT(*) as bookings_count')
+            ->selectRaw('SUM(booking.total_amount) as total_revenue')
+            ->orderByRaw('SUM(booking.total_amount) DESC')
+            ->limit(10)
+            ->get();
+
+        $staffPerformance = (clone $filtered)->toBase()
+            ->join('salon_staff as st', 'booking.staffID', '=', 'st.staffID')
+            ->leftJoin('feedback as f', 'f.bookingID', '=', 'booking.bookingID')
+            ->groupBy('st.staffID', 'st.firstName', 'st.lastName')
+            ->select('st.firstName', 'st.lastName')
+            ->selectRaw('SUM(CASE WHEN booking."bookingStatus" = \'completed\' THEN 1 ELSE 0 END) as completed')
+            ->selectRaw('COUNT(f."feedbackID") as feedback_count')
+            ->selectRaw('AVG(f.rating) as avg_rating')
+            ->orderByRaw('SUM(CASE WHEN booking."bookingStatus" = \'completed\' THEN 1 ELSE 0 END) DESC')
+            ->limit(10)
+            ->get()
+            ->map(fn ($row) => (object) [
+                'staff_name' => trim($row->firstName.' '.$row->lastName),
+                'completed' => (int) $row->completed,
+                'feedback_count' => (int) $row->feedback_count,
+                'avg_rating' => $row->avg_rating,
+            ]);
+
+        $records = (clone $filtered)
+            ->with(['customer', 'serviceItem', 'staff'])
+            ->orderByDesc('booking.bookingDate')
+            ->orderByDesc('booking.bookingTime')
+            ->paginate(25)
+            ->withQueryString();
+
+        $role = $this->role();
 
         return view('portal.reports', [
-            'totalBookings' => (clone $bookings)->count(),
-            'completedBookings' => (clone $bookings)->where('bookingStatus', 'completed')->count(),
-            'pendingBookings' => (clone $bookings)->where('bookingStatus', 'pending')->count(),
-            'completedRevenue' => (float) (clone $bookings)->where('bookingStatus', 'completed')->sum('total_amount'),
-            'byService' => DB::table('view_revenue_by_service')->orderByDesc('total_revenue')->limit(10)->get(),
-            'staffPerformance' => DB::table('view_staff_performance')->orderByDesc('completed')->limit(10)->get(),
-            'feedbackCount' => Feedback::count(),
+            'role' => $role,
+            'statuses' => $statuses,
+            'totalBookings' => (int) ($totals->total ?? 0),
+            'pendingBookings' => (int) ($totals->pending ?? 0),
+            'completedBookings' => (int) ($totals->completed ?? 0),
+            'completedRevenue' => (float) ($totals->revenue ?? 0),
+            'feedbackCount' => Feedback::whereIn('bookingID', (clone $filtered)->select('booking.bookingID'))->count(),
+            'byService' => $byService,
+            'staffPerformance' => $staffPerformance,
+            'records' => $records,
+            'serviceOptions' => Service::where('serviceName', '<>', BookingService::HOME_FEE_NAME)->orderBy('serviceName')->get(),
+            'staffOptions' => Staff::whereIn('role', ['Owner', 'Manager', 'Staff'])->where('is_archived', 0)->orderBy('firstName')->get(),
+            'canOpen' => $role === 'owner' || Permission::allows('Manager', 'bookings', 'view'),
         ]);
     }
 
@@ -319,6 +435,11 @@ class OperationsController extends Controller
         SystemLog::record($this->role(), (int) Auth::guard('staff')->id(), 'review_payment', "Marked payment {$payment->getKey()} as {$status}");
 
         return back()->with('status', $status === 'confirmed' ? 'Payment confirmed.' : 'Payment rejected.');
+    }
+
+    private function allowed(string $module, string $action): bool
+    {
+        return $this->role() === 'owner' || Permission::allows('Manager', $module, $action);
     }
 
     private function role(): string

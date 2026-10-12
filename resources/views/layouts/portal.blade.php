@@ -46,6 +46,10 @@
                     @if (Route::has($item['route']))
                         <a href="{{ route($item['route']) }}" class="nav-item {{ request()->routeIs($item['route'], $item['route'] . '.*') ? 'active' : '' }}">
                             <i class="fas {{ $item['icon'] }}"></i> <span>{{ $item['label'] }}</span>
+                            @if (str_ends_with($item['route'], '.notifications'))
+                                @php $unread = \App\Models\UserNotification::forUser($role, (int) $account->getKey())->where('is_read', 0)->count(); @endphp
+                                @if ($unread > 0)<span class="nav-badge">{{ $unread }}</span>@endif
+                            @endif
                         </a>
                     @endif
                 @endforeach

@@ -9,7 +9,7 @@
     <div class="page-header">
         <div class="page-title">
             <h1>Attendance</h1>
-            <p>Mark online bookings as present or no-show. Walk-ins are checked in on arrival.</p>
+            <p>Mark online bookings as present or no-show. Owners and managers can correct a mistaken record. Walk-ins are checked in on arrival.</p>
         </div>
     </div>
 
@@ -55,6 +55,15 @@
                                         @csrf
                                         <button class="btn-primary btn-sm" name="attendance_status" value="present">Present</button>
                                         <button class="btn-ghost btn-sm" name="attendance_status" value="no-show" onclick="return confirm('Mark this customer as a no-show?')">No-show</button>
+                                    </form>
+                                @elseif (! $booking->is_walkin && in_array($booking->bookingStatus, ['completed', 'no-show'], true) && $canMark)
+                                    @php $next = $booking->bookingStatus === 'completed' ? 'no-show' : 'present'; @endphp
+                                    <form method="POST" action="{{ route($role . '.attendance.update', $booking) }}"
+                                          onsubmit="return confirm('Correct this record to {{ $next === 'present' ? 'Present' : 'No-show' }}?')">
+                                        @csrf
+                                        <button class="btn-outline btn-sm" name="attendance_status" value="{{ $next }}">
+                                            <i class="fas fa-rotate-left"></i> Change to {{ $next === 'present' ? 'Present' : 'No-show' }}
+                                        </button>
                                     </form>
                                 @else
                                     <span class="muted-text">&mdash;</span>

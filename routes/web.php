@@ -12,6 +12,7 @@ use App\Http\Controllers\Customer\PaymentProofController;
 use App\Http\Controllers\Customer\ProfileController;
 use App\Http\Controllers\Customer\ServiceController;
 use App\Http\Controllers\Customer\StaffAvailabilityController;
+use App\Http\Controllers\Customer\SlotAvailabilityController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\LandingController;
 use App\Http\Controllers\MediaController;
@@ -19,11 +20,13 @@ use App\Http\Controllers\MessengerLinkController;
 use App\Http\Controllers\MessengerWebhookController;
 use App\Http\Controllers\ChatController;
 use App\Http\Controllers\Owner\AdministrationController;
+use App\Http\Controllers\Owner\SalonHoursController;
 use App\Http\Controllers\PaymentProofFileController;
 use App\Http\Controllers\PayMongoWebhookController;
 use App\Http\Controllers\Portal\BookingDetailController;
 use App\Http\Controllers\Portal\OperationsController;
 use App\Http\Controllers\Portal\WalkinController;
+use App\Http\Controllers\Portal\StaffNotificationController;
 use App\Http\Controllers\Staff\AccountController;
 use App\Http\Controllers\Staff\BookingController as StaffBookingController;
 use Illuminate\Support\Facades\Route;
@@ -89,6 +92,7 @@ Route::middleware('auth:customer')->prefix('customer')->name('customer.')->group
     Route::delete('/cart/{cart}', [ServiceController::class, 'removeCart'])->name('cart.remove');
     Route::post('/cart/checkout', [ServiceController::class, 'selectForCheckout'])->name('cart.checkout');
     Route::get('/staff-availability', StaffAvailabilityController::class)->name('staff-availability');
+    Route::get('/slot-availability', SlotAvailabilityController::class)->name('slot-availability');
     Route::get('/checkout', [CheckoutController::class, 'show'])->name('checkout');
     Route::post('/checkout', [CheckoutController::class, 'place'])->name('checkout.place');
     Route::post('/checkout/promo', [CheckoutController::class, 'promo'])->name('checkout.promo');
@@ -139,6 +143,9 @@ Route::middleware('auth:staff')->group(function () {
         Route::get('/profile', [AccountController::class, 'profile'])->name('profile');
         Route::put('/profile', [AccountController::class, 'updateProfile'])->name('profile.update');
         Route::put('/profile/password', [AccountController::class, 'updatePassword'])->name('profile.password');
+        Route::get('/notifications', [StaffNotificationController::class, 'index'])->name('notifications');
+        Route::post('/notifications/read-all', [StaffNotificationController::class, 'readAll'])->name('notifications.read-all');
+        Route::post('/notifications/{id}/read', [StaffNotificationController::class, 'read'])->name('notifications.read');
     });
 
     Route::middleware('role:manager')->prefix('manager')->name('manager.')->group(function () {
@@ -161,8 +168,19 @@ Route::middleware('auth:staff')->group(function () {
         Route::get('/staff', [OperationsController::class, 'staffDirectory'])->middleware('perm:staff')->name('staff');
         Route::get('/services', [OperationsController::class, 'services'])->middleware('perm:services')->name('services');
         Route::get('/reports', [OperationsController::class, 'reports'])->middleware('perm:reports')->name('reports');
+        Route::post('/customers/{customer}/status', [OperationsController::class, 'updateCustomerStatus'])->middleware('perm:customers,edit')->name('customers.status');
+        Route::post('/services', [AdministrationController::class, 'createService'])->middleware('perm:services,create')->name('services.create');
+        Route::put('/services/{service}', [AdministrationController::class, 'updateService'])->middleware('perm:services,edit')->name('services.update');
+        Route::post('/services/{service}/toggle', [AdministrationController::class, 'toggleService'])->middleware('perm:services,edit')->name('services.toggle');
+        Route::post('/staff', [AdministrationController::class, 'createStaff'])->middleware('perm:staff,create')->name('staff.create');
+        Route::put('/staff/{staff}', [AdministrationController::class, 'updateStaff'])->middleware('perm:staff,edit')->name('staff.update');
+        Route::post('/staff/{staff}/toggle', [AdministrationController::class, 'toggleStaff'])->middleware('perm:staff,edit')->name('staff.toggle');
+        Route::post('/staff/{staff}/archive', [AdministrationController::class, 'archiveStaff'])->middleware('perm:staff,delete')->name('staff.archive');
         Route::get('/profile', [AccountController::class, 'profile'])->name('profile');
         Route::put('/profile', [AccountController::class, 'updateProfile'])->name('profile.update');
+        Route::get('/notifications', [StaffNotificationController::class, 'index'])->name('notifications');
+        Route::post('/notifications/read-all', [StaffNotificationController::class, 'readAll'])->name('notifications.read-all');
+        Route::post('/notifications/{id}/read', [StaffNotificationController::class, 'read'])->name('notifications.read');
         Route::put('/profile/password', [AccountController::class, 'updatePassword'])->name('profile.password');
     });
 
@@ -202,6 +220,8 @@ Route::middleware('auth:staff')->group(function () {
         Route::delete('/promos/{promo}', [AdministrationController::class, 'deletePromo'])->name('promos.delete');
         Route::get('/policies', [AdministrationController::class, 'policies'])->name('policies');
         Route::put('/policies', [AdministrationController::class, 'updatePolicies'])->name('policies.update');
+        Route::get('/salon-hours', [SalonHoursController::class, 'edit'])->name('salon-hours');
+        Route::put('/salon-hours', [SalonHoursController::class, 'update'])->name('salon-hours.update');
         Route::get('/permissions', [AdministrationController::class, 'permissions'])->name('permissions');
         Route::put('/permissions', [AdministrationController::class, 'updatePermissions'])->name('permissions.update');
         Route::get('/logs', [AdministrationController::class, 'logs'])->name('logs');
@@ -209,6 +229,11 @@ Route::middleware('auth:staff')->group(function () {
         Route::post('/staff/manage', [AdministrationController::class, 'createStaff'])->name('staff.create');
         Route::put('/staff/{staff}', [AdministrationController::class, 'updateStaff'])->name('staff.update');
         Route::post('/staff/{staff}/archive', [AdministrationController::class, 'archiveStaff'])->name('staff.archive');
+        Route::get('/notifications', [StaffNotificationController::class, 'index'])->name('notifications');
+        Route::post('/notifications/read-all', [StaffNotificationController::class, 'readAll'])->name('notifications.read-all');
+        Route::post('/notifications/{id}/read', [StaffNotificationController::class, 'read'])->name('notifications.read');
+        Route::post('/staff-availability/requests/{availabilityRequest}/approve', [AccountController::class, 'approveAvailabilityRequest'])->name('staff-availability.approve');
+        Route::post('/staff-availability/requests/{availabilityRequest}/reject', [AccountController::class, 'rejectAvailabilityRequest'])->name('staff-availability.reject');
         Route::post('/staff/{staff}/toggle', [AdministrationController::class, 'toggleStaff'])->name('staff.toggle');
     });
 });

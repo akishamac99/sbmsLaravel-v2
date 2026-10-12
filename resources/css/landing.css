@@ -761,3 +761,7 @@
             transform: none;
         }
     }
+
+.testimonial-card[hidden] { display: none !important; }
+.testimonial-summary { margin: 0 0 20px; font-size: 1.05rem; color: var(--brown-medium); }
+.testimonial-summary strong { font-size: 1.6rem; color: var(--primary); margin-right: 4px; }

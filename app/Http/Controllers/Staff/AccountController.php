@@ -11,6 +11,10 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
+use App\Models\Booking;
+use App\Models\StaffAvailabilityRequest;
+use App\Models\UserNotification;
+use Illuminate\Support\Carbon;
 use Illuminate\View\View;
 
 class AccountController extends Controller
@@ -55,26 +59,76 @@ class AccountController extends Controller
         return back()->with('status', 'Password updated.');
     }
 
-    public function availability(): View
+        public function availability(): View
     {
         $staff = Staff::findOrFail(Auth::guard('staff')->id());
+        $requests = StaffAvailabilityRequest::where('staffID', $staff->getKey());
 
         return view('staff.availability', [
             'staff' => $staff,
             'schedule' => $staff->availability->keyBy('day_of_week'),
             'days' => self::DAYS,
+            'pendingRequest' => (clone $requests)->where('status', 'pending')->latest('created_at')->first(),
+            'recentRequests' => (clone $requests)->where('status', '<>', 'pending')->latest('created_at')->limit(5)->get(),
         ]);
     }
 
     public function updateAvailability(Request $request): RedirectResponse
     {
-        $validated = $this->validateSchedule($request);
+        $validated = $this->validateSchedule($request) + $request->validate([
+            'reason' => ['required', 'string', 'min:5', 'max:255'],
+        ], [
+            'reason.required' => 'Tell the owner why you are changing your hours.',
+            'reason.min' => 'Please give a short reason (at least 5 characters).',
+        ]);
+
         $staff = Staff::findOrFail(Auth::guard('staff')->id());
-        $this->replaceSchedule($staff, $validated['availability'] ?? []);
 
-        return back()->with('status', 'Availability updated.');
+        if (StaffAvailabilityRequest::where('staffID', $staff->getKey())->where('status', 'pending')->exists()) {
+            return back()->withInput()->with('error', 'You already have a request waiting for the owner. Wait for a decision before sending another.');
+        }
+
+        $requested = [];
+        foreach (self::DAYS as $day) {
+            $slot = $validated['availability'][$day] ?? [];
+            if (! empty($slot['enabled'])) {
+                $requested[$day] = ['start_time' => $slot['start_time'], 'end_time' => $slot['end_time']];
+            }
+        }
+
+        $current = $staff->availability
+            ->where('is_available', 1)
+            ->mapWithKeys(fn ($slot) => [$slot->day_of_week => [
+                'start_time' => substr($slot->start_time, 0, 5),
+                'end_time' => substr($slot->end_time, 0, 5),
+            ]])
+            ->all();
+
+        ksort($requested);
+        ksort($current);
+
+        if ($requested == $current) {
+            return back()->withInput()->with('error', 'These hours match your current schedule, so there is nothing to send.');
+        }
+
+        $changeRequest = StaffAvailabilityRequest::create([
+            'staffID' => $staff->getKey(),
+            'schedule' => $requested,
+            'reason' => trim($validated['reason']),
+        ]);
+
+        Staff::where('role', 'Owner')->where('is_active', 1)->where('is_archived', 0)->get()
+            ->each(fn (Staff $owner) => UserNotification::send(
+                'owner',
+                (int) $owner->getKey(),
+                'Availability change request',
+                "{$staff->full_name} asked to change their working hours. Review it under Staff Availability."
+            ));
+
+        SystemLog::record($staff->role_slug, (int) $staff->getKey(), 'request_availability_change', "Requested a working hours change (#{$changeRequest->getKey()})");
+
+        return back()->with('status', 'Request sent. Your current hours stay in place until the owner approves.');
     }
-
     public function manageAvailability(Request $request): View
     {
         $request->validate([
@@ -97,10 +151,17 @@ class AccountController extends Controller
             ->paginate(25)
             ->withQueryString();
 
+        $pending = StaffAvailabilityRequest::with('staff.availability')
+            ->where('status', 'pending')
+            ->oldest('created_at')
+            ->get();
+
         return view('owner.staff-availability', [
             'staffMembers' => $staffMembers,
             'openStaffId' => (int) $request->query('staff_id'),
             'days' => self::DAYS,
+            'requests' => $pending,
+            'conflictCounts' => $pending->mapWithKeys(fn ($r) => [$r->requestID => $this->conflictCount($r)])->all(),
         ]);
     }
 
@@ -137,8 +198,92 @@ class AccountController extends Controller
         }
 
         return $validated;
+
+
+    }
+    public function approveAvailabilityRequest(StaffAvailabilityRequest $availabilityRequest): RedirectResponse
+    {
+        if ($availabilityRequest->status !== 'pending') {
+            return back()->with('error', 'This request was already reviewed.');
+        }
+
+        $staff = Staff::whereKey($availabilityRequest->staffID)
+            ->whereIn('role', self::SCHEDULABLE_ROLES)
+            ->where('is_archived', 0)
+            ->first();
+
+        if (! $staff) {
+            return back()->with('error', 'This staff member is no longer active.');
+        }
+
+        $schedule = array_map(fn ($slot) => $slot + ['enabled' => 1], $availabilityRequest->schedule ?? []);
+
+        DB::transaction(function () use ($availabilityRequest, $staff, $schedule): void {
+            $this->replaceSchedule($staff, $schedule);
+            $availabilityRequest->update([
+                'status' => 'approved',
+                'reviewed_by' => Auth::guard('staff')->id(),
+                'reviewed_at' => now(),
+            ]);
+            UserNotification::send($staff->role_slug, (int) $staff->getKey(), 'Availability approved', 'Your new working hours are now active.');
+        });
+
+        SystemLog::record('owner', (int) Auth::guard('staff')->id(), 'approve_availability', "Approved availability request #{$availabilityRequest->getKey()} for {$staff->full_name}");
+
+        return back()->with('status', "Approved. {$staff->full_name}'s new hours are active.");
     }
 
+    public function rejectAvailabilityRequest(Request $request, StaffAvailabilityRequest $availabilityRequest): RedirectResponse
+    {
+        $validated = $request->validate(['review_note' => ['nullable', 'string', 'max:255']]);
+
+        if ($availabilityRequest->status !== 'pending') {
+            return back()->with('error', 'This request was already reviewed.');
+        }
+
+        $staff = Staff::find($availabilityRequest->staffID);
+        $note = trim((string) ($validated['review_note'] ?? ''));
+
+        DB::transaction(function () use ($availabilityRequest, $staff, $note): void {
+            $availabilityRequest->update([
+                'status' => 'rejected',
+                'reviewed_by' => Auth::guard('staff')->id(),
+                'reviewed_at' => now(),
+                'review_note' => $note !== '' ? $note : null,
+            ]);
+
+            if ($staff) {
+                UserNotification::send(
+                    $staff->role_slug,
+                    (int) $staff->getKey(),
+                    'Availability request declined',
+                    'Your working hours stay the same.'.($note !== '' ? " Owner's note: {$note}" : '')
+                );
+            }
+        });
+
+        SystemLog::record('owner', (int) Auth::guard('staff')->id(), 'reject_availability', "Rejected availability request #{$availabilityRequest->getKey()}");
+
+        return back()->with('status', 'Request declined.');
+    }
+
+    /** Upcoming pending or approved bookings that the requested hours would leave uncovered. */
+    private function conflictCount(StaffAvailabilityRequest $changeRequest): int
+    {
+        $schedule = $changeRequest->schedule ?? [];
+
+        return Booking::where('staffID', $changeRequest->staffID)
+            ->whereIn('bookingStatus', ['pending', 'approved'])
+            ->whereDate('bookingDate', '>=', Carbon::today()->toDateString())
+            ->get(['bookingDate', 'bookingTime'])
+            ->filter(function ($booking) use ($schedule): bool {
+                $slot = $schedule[$booking->bookingDate->format('l')] ?? null;
+                $time = substr((string) $booking->bookingTime, 0, 5);
+
+                return ! $slot || $time < $slot['start_time'] || $time >= $slot['end_time'];
+            })
+            ->count();
+    }
     private function replaceSchedule(Staff $staff, array $schedule): void
     {
         DB::transaction(function () use ($staff, $schedule): void {

@@ -17,7 +17,7 @@
             <h1>Services</h1>
             <p>{{ $isOwner ? 'Your service menu, prices and durations.' : 'The service menu, prices and durations.' }}</p>
         </div>
-        @if ($isOwner)
+        @if ($canCreate)
             <div class="page-actions">
                 <button type="button" class="btn-primary" data-open-form="serviceModal"><i class="fas fa-plus"></i> Add service</button>
             </div>
@@ -54,7 +54,7 @@
 
         <div class="table-scroll">
             <table class="list-table">
-                <thead><tr><th>Service</th><th class="num">Price</th><th>Duration</th><th>Home service</th><th>Status</th>@if ($isOwner)<th class="col-actions"><span class="sr-only">Actions</span></th>@endif</tr></thead>
+                <thead><tr><th>Service</th><th class="num">Price</th><th>Duration</th><th>Home service</th><th>Status</th>@if ($canEdit)<th class="col-actions"><span class="sr-only">Actions</span></th>@endif</tr></thead>
                 <tbody>
                     @forelse ($services as $service)
                         <tr class="{{ $service->is_active ? '' : 'is-inactive' }}">
@@ -75,13 +75,13 @@
                             <td class="nowrap">{{ $service->duration_label }}</td>
                             <td>{{ $service->is_home_service ? 'Available' : '—' }}</td>
                             <td><span class="pill {{ $service->is_active ? 'p-conf' : 'p-cancel' }}">{{ $service->is_active ? 'Active' : 'Inactive' }}</span></td>
-                            @if ($isOwner)
+                            @if ($canEdit)
                                 <td class="col-actions">
                                     <div class="row-menu">
                                         <button type="button" class="btn-menu" onclick="toggleMenu(this)" aria-label="Actions for {{ $service->serviceName }}"><i class="fas fa-ellipsis-v"></i></button>
                                         <div class="menu-dropdown">
                                             <button type="button" data-open-form="serviceModal"
-                                                    data-action="{{ route('owner.services.update', $service) }}"
+                                                    data-action="{{ route($role . '.services.update', $service) }}"
                                                     data-record="{{ json_encode([
                                                         'serviceName' => $service->serviceName,
                                                         'catID' => $service->catID,
@@ -93,7 +93,7 @@
                                                     ]) }}">
                                                 <i class="fas fa-pen"></i> Edit
                                             </button>
-                                            <form method="POST" action="{{ route('owner.services.toggle', $service) }}">
+                                            <form method="POST" action="{{ route($role . '.services.toggle', $service) }}">
                                                 @csrf
                                                 <button type="submit" class="{{ $service->is_active ? 'menu-danger' : 'menu-success' }}">
                                                     <i class="fas {{ $service->is_active ? 'fa-eye-slash' : 'fa-eye' }}"></i> {{ $service->is_active ? 'Deactivate' : 'Activate' }}
@@ -113,12 +113,12 @@
         {{ $services->links() }}
     </section>
 
-    @if ($isOwner)
+    @if ($canCreate || $canEdit)
         <div class="modal" id="serviceModal" role="dialog" aria-modal="true" aria-labelledby="serviceModalTitle" data-modal-form
              @if ($errors->any() && old('_modal') === 'serviceModal') data-reopen @endif>
             <div class="modal-content modal-lg">
-                <form method="POST" action="{{ route('owner.services.create') }}" enctype="multipart/form-data"
-                      data-create-action="{{ route('owner.services.create') }}">
+                <form method="POST" action="{{ route($role . '.services.create') }}" enctype="multipart/form-data"
+                      data-create-action="{{ route($role . '.services.create') }}">
                     @csrf
                     <input type="hidden" name="_method" value="POST">
                     <input type="hidden" name="_modal" value="serviceModal">

@@ -18,6 +18,62 @@
         </div>
     </div>
 
+    @if ($requests->isNotEmpty())
+        <section class="card" id="requests">
+            <div class="card-header"><span>Availability requests <span class="nav-badge">{{ $requests->count() }} pending</span></span></div>
+            <div class="card-body">
+                @foreach ($requests as $req)
+                    @php
+                        $now = $req->staff->availability->where('is_available', 1)->keyBy('day_of_week');
+                        $conflicts = $conflictCounts[$req->requestID] ?? 0;
+                    @endphp
+                    <div style="margin-bottom:24px">
+                        <strong>{{ $req->staff->full_name }}</strong>
+                        <small> &middot; sent {{ $req->created_at->format('M d, Y g:i A') }}</small>
+                        <p style="margin:4px 0 10px">Reason: &ldquo;{{ $req->reason }}&rdquo;</p>
+
+                        @if ($conflicts > 0)
+                            <div class="alert-inline" role="alert" style="margin-bottom:10px">
+                                {{ $conflicts }} upcoming booking(s) for this person fall outside the requested hours. Approving will not cancel them.
+                            </div>
+                        @endif
+
+                        <div class="table-scroll">
+                            <table class="list-table">
+                                <thead><tr><th>Day</th><th>Current</th><th>Requested</th></tr></thead>
+                                <tbody>
+                                    @foreach ($days as $day)
+                                        @php
+                                            $old = $now->get($day);
+                                            $oldText = $old ? $fmt($old->start_time) . ' – ' . $fmt($old->end_time) : 'Off';
+                                            $new = $req->schedule[$day] ?? null;
+                                            $newText = $new ? $fmt($new['start_time']) . ' – ' . $fmt($new['end_time']) : 'Off';
+                                        @endphp
+                                        <tr style="{{ $oldText !== $newText ? 'font-weight:600' : '' }}">
+                                            <td>{{ $day }}</td><td>{{ $oldText }}</td><td>{{ $newText }}</td>
+                                        </tr>
+                                    @endforeach
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px;align-items:center">
+                            <form method="POST" action="{{ route('owner.staff-availability.approve', $req->requestID) }}">
+                                @csrf
+                                <button class="btn-primary btn-sm" type="submit">Approve</button>
+                            </form>
+                            <form method="POST" action="{{ route('owner.staff-availability.reject', $req->requestID) }}" style="display:flex;gap:8px;align-items:center">
+                                @csrf
+                                <input class="form-control" name="review_note" maxlength="255" placeholder="Note to staff (optional)" aria-label="Note to staff">
+                                <button class="btn-ghost btn-sm" type="submit">Decline</button>
+                            </form>
+                        </div>
+                    </div>
+                @endforeach
+            </div>
+        </section>
+    @endif
+
     <section class="card">
         <form method="GET" class="toolbar" role="search">
             <div class="search-box">

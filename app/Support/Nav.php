@@ -21,6 +21,7 @@ class Nav
             'owner' => [
                 '' => [
                     ['Dashboard', 'dashboard', 'fa-chart-line', null],
+                    ['Notifications', 'notifications', 'fa-bell', null],
                 ],
                 'Bookings' => [
                     ['Manage Bookings', 'bookings', 'fa-calendar', null],
@@ -41,6 +42,7 @@ class Nav
                 'Settings' => [
                     ['My Profile', 'profile', 'fa-user', null],
                     ['Policies', 'policies', 'fa-gavel', null],
+                    ['Salon Hours', 'salon-hours', 'fa-store', null],
                     ['Permissions', 'permissions', 'fa-user-shield', null],
                     ['System Logs', 'logs', 'fa-list', null],
                 ],
@@ -48,6 +50,7 @@ class Nav
             'manager' => [
                 '' => [
                     ['Dashboard', 'dashboard', 'fa-chart-line', null],
+                    ['Notifications', 'notifications', 'fa-bell', null],
                 ],
                 'Bookings' => [
                     ['Manage Bookings', 'bookings', 'fa-calendar', 'bookings'],
@@ -68,6 +71,7 @@ class Nav
             'staff' => [
                 '' => [
                     ['Dashboard', 'dashboard', 'fa-chart-line', null],
+                    ['Notifications', 'notifications', 'fa-bell', null],
                 ],
                 'My Work' => [
                     ['My Bookings', 'bookings', 'fa-calendar', null],

@@ -13,8 +13,11 @@ use App\Models\ServiceCategory;
 use App\Models\Staff;
 use App\Models\SystemLog;
 use App\Models\UserNotification;
+use App\Http\Requests\Portal\ReportFilterRequest;
 use App\Services\BookingService;
+use App\Services\Reports\ReportSummary;
 use App\Services\StaffMatcher;
+use DomainException;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
@@ -100,10 +103,23 @@ class OperationsController extends Controller
             return back()->with('error', 'Select an active, qualified staff member who is available for this booking.');
         }
 
-        DB::transaction(function () use ($booking, $staffId): void {
-            $booking->update(['bookingStatus' => 'approved', 'staffID' => $staffId]);
-            UserNotification::send('customer', (int) $booking->customerID, 'Booking Approved', "Your booking {$booking->bookingRef} has been approved.");
-        });
+        try {
+            DB::transaction(function () use ($booking, $staffId, $matcher): void {
+                // SDD Scenario 1: lock the staff row and the booking, then recheck before approving.
+                Staff::whereKey($staffId)->lockForUpdate()->first();
+                $fresh = Booking::whereKey($booking->getKey())->lockForUpdate()->firstOrFail();
+
+                if ($fresh->bookingStatus !== 'pending'
+                    || ! $matcher->isAvailable($staffId, Carbon::parse($fresh->bookingDate)->toDateString(), (string) $fresh->bookingTime, (int) $fresh->serviceID, (int) $fresh->bookingID)) {
+                    throw new DomainException('Slot no longer available. Choose another staff member.');
+                }
+
+                $fresh->update(['bookingStatus' => 'approved', 'staffID' => $staffId]);
+                UserNotification::send('customer', (int) $fresh->customerID, 'Booking Approved', "Your booking {$fresh->bookingRef} has been approved.");
+            });
+        } catch (DomainException $e) {
+            return back()->with('error', $e->getMessage());
+        }
 
         SystemLog::record($this->role(), (int) Auth::guard('staff')->id(), 'approve_booking', "Approved booking {$booking->bookingRef}");
 
@@ -299,83 +315,12 @@ class OperationsController extends Controller
         ]);
     }
 
-    public function reports(Request $request): View
+    public function reports(ReportFilterRequest $request, ReportSummary $summary): View
     {
-        $statuses = ['pending', 'approved', 'completed', 'declined', 'cancelled', 'no-show'];
-
-        $request->validate([
-            'from' => ['nullable', 'date_format:Y-m-d'],
-            'to' => ['nullable', 'date_format:Y-m-d'],
-            'status' => ['nullable', 'in:'.implode(',', $statuses)],
-            'type' => ['nullable', 'in:online,walkin'],
-            'staff_id' => ['nullable', 'integer'],
-            'service_id' => ['nullable', 'integer'],
-            'q' => ['nullable', 'string', 'max:100'],
-        ]);
-
-        $from = $request->query('from');
-        $to = $request->query('to');
-
-        if ($from && $to && $from > $to) {
-            [$from, $to] = [$to, $from];
-        }
-
-        $search = trim((string) $request->query('q', ''));
+        $filters = $request->filters();
 
         // Every number and table on the page comes from this one filtered set of bookings.
-        $filtered = Booking::query()
-            ->when($from, fn ($query) => $query->whereDate('booking.bookingDate', '>=', $from))
-            ->when($to, fn ($query) => $query->whereDate('booking.bookingDate', '<=', $to))
-            ->when($request->filled('status'), fn ($query) => $query->where('booking.bookingStatus', $request->query('status')))
-            ->when($request->filled('type'), fn ($query) => $query->where('booking.booking_source', $request->query('type')))
-            ->when($request->filled('staff_id'), fn ($query) => $query->where('booking.staffID', (int) $request->query('staff_id')))
-            ->when($request->filled('service_id'), fn ($query) => $query->where('booking.serviceID', (int) $request->query('service_id')))
-            ->when($search !== '', function ($query) use ($search) {
-                $like = '%'.mb_strtolower($search).'%';
-                $query->where(fn ($inner) => $inner
-                    ->whereRaw('LOWER(booking."bookingRef") LIKE ?', [$like])
-                    ->orWhereRaw('LOWER(booking.service) LIKE ?', [$like])
-                    ->orWhereHas('customer', fn ($customer) => $customer
-                        ->whereRaw('LOWER("firstName" || \' \' || "lastName") LIKE ?', [$like])
-                        ->orWhere('contactNumber', 'like', '%'.$search.'%')));
-            });
-
-        $totals = (clone $filtered)->toBase()
-            ->selectRaw('COUNT(*) as total')
-            ->selectRaw('SUM(CASE WHEN booking."bookingStatus" = \'pending\' THEN 1 ELSE 0 END) as pending')
-            ->selectRaw('SUM(CASE WHEN booking."bookingStatus" = \'completed\' THEN 1 ELSE 0 END) as completed')
-            ->selectRaw('SUM(CASE WHEN booking."bookingStatus" = \'completed\' THEN booking.total_amount ELSE 0 END) as revenue')
-            ->first();
-
-        $byService = (clone $filtered)->toBase()
-            ->whereNotIn('booking.bookingStatus', ['cancelled', 'declined', 'no-show'])
-            ->join('service as s', 'booking.serviceID', '=', 's.serviceID')
-            ->leftJoin('service_categories as c', 's.catID', '=', 'c.catID')
-            ->groupBy('s.serviceID', 's.serviceName', 'c.category_name')
-            ->select('s.serviceName', 'c.category_name as category')
-            ->selectRaw('COUNT(*) as bookings_count')
-            ->selectRaw('SUM(booking.total_amount) as total_revenue')
-            ->orderByRaw('SUM(booking.total_amount) DESC')
-            ->limit(10)
-            ->get();
-
-        $staffPerformance = (clone $filtered)->toBase()
-            ->join('salon_staff as st', 'booking.staffID', '=', 'st.staffID')
-            ->leftJoin('feedback as f', 'f.bookingID', '=', 'booking.bookingID')
-            ->groupBy('st.staffID', 'st.firstName', 'st.lastName')
-            ->select('st.firstName', 'st.lastName')
-            ->selectRaw('SUM(CASE WHEN booking."bookingStatus" = \'completed\' THEN 1 ELSE 0 END) as completed')
-            ->selectRaw('COUNT(f."feedbackID") as feedback_count')
-            ->selectRaw('AVG(f.rating) as avg_rating')
-            ->orderByRaw('SUM(CASE WHEN booking."bookingStatus" = \'completed\' THEN 1 ELSE 0 END) DESC')
-            ->limit(10)
-            ->get()
-            ->map(fn ($row) => (object) [
-                'staff_name' => trim($row->firstName.' '.$row->lastName),
-                'completed' => (int) $row->completed,
-                'feedback_count' => (int) $row->feedback_count,
-                'avg_rating' => $row->avg_rating,
-            ]);
+        $filtered = $summary->filteredBookings($filters);
 
         $records = (clone $filtered)
             ->with(['customer', 'serviceItem', 'staff'])
@@ -386,16 +331,9 @@ class OperationsController extends Controller
 
         $role = $this->role();
 
-        return view('portal.reports', [
+        return view('portal.reports', $summary->build($filtered, $filters) + [
             'role' => $role,
-            'statuses' => $statuses,
-            'totalBookings' => (int) ($totals->total ?? 0),
-            'pendingBookings' => (int) ($totals->pending ?? 0),
-            'completedBookings' => (int) ($totals->completed ?? 0),
-            'completedRevenue' => (float) ($totals->revenue ?? 0),
-            'feedbackCount' => Feedback::whereIn('bookingID', (clone $filtered)->select('booking.bookingID'))->count(),
-            'byService' => $byService,
-            'staffPerformance' => $staffPerformance,
+            'statuses' => ReportSummary::STATUSES,
             'records' => $records,
             'serviceOptions' => Service::where('serviceName', '<>', BookingService::HOME_FEE_NAME)->orderBy('serviceName')->get(),
             'staffOptions' => Staff::whereIn('role', ['Owner', 'Manager', 'Staff'])->where('is_archived', 0)->orderBy('firstName')->get(),
@@ -415,22 +353,28 @@ class OperationsController extends Controller
 
     private function updatePayment(Payment $payment, string $status): RedirectResponse
     {
-        $booking = $payment->booking;
+        try {
+            DB::transaction(function () use ($payment, $status): void {
+                // SDD Scenario 3: a payment changes only while it is still pending or proof-submitted.
+                $locked = Payment::whereKey($payment->getKey())->lockForUpdate()->firstOrFail();
+                $booking = $locked->booking;
 
-        if ($payment->payStatus !== 'proof-submitted' || ! $booking) {
-            return back()->with('error', 'Only submitted payment proofs can be reviewed.');
+                if (! $booking || ! in_array($locked->payStatus, ['pending', 'proof-submitted'], true)) {
+                    throw new DomainException('This payment has already been settled.');
+                }
+
+                $locked->update(['payStatus' => $status]);
+                $booking->update(['paymentStatus' => $status === 'confirmed' ? 'confirmed' : 'rejected']);
+                UserNotification::send(
+                    'customer',
+                    (int) $booking->customerID,
+                    $status === 'confirmed' ? 'Payment Confirmed' : 'Payment Rejected',
+                    $status === 'confirmed' ? 'Your payment has been confirmed.' : 'Your payment proof was rejected. Please upload a clear screenshot.'
+                );
+            });
+        } catch (DomainException $e) {
+            return back()->with('error', $e->getMessage());
         }
-
-        DB::transaction(function () use ($payment, $booking, $status): void {
-            $payment->update(['payStatus' => $status]);
-            $booking->update(['paymentStatus' => $status === 'confirmed' ? 'confirmed' : 'rejected']);
-            UserNotification::send(
-                'customer',
-                (int) $booking->customerID,
-                $status === 'confirmed' ? 'Payment Confirmed' : 'Payment Rejected',
-                $status === 'confirmed' ? 'Your payment has been confirmed.' : 'Your payment proof was rejected. Please upload a clear screenshot.'
-            );
-        });
 
         SystemLog::record($this->role(), (int) Auth::guard('staff')->id(), 'review_payment', "Marked payment {$payment->getKey()} as {$status}");
 

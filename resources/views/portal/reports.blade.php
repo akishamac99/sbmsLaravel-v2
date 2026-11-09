@@ -18,7 +18,11 @@
         ];
     @endphp
 
-    <div class="page-header"><h1>Operational Reports</h1><p>Booking, revenue, service, and team summaries. Use the filters to focus on a period, a person or a service.</p></div>
+    <div class="page-header"><h1>Operational Reports</h1><p>Booking, revenue, service, and team summaries. Use the filters to focus on a period, a person or a service.</p>
+        <div class="page-actions">
+            <a class="btn-primary btn-sm" href="{{ route($role.'.reports.download.form', request()->only($filterKeys)) }}"><i class="fas fa-download" aria-hidden="true"></i> Download report</a>
+            <a class="btn-ghost btn-sm" href="{{ route($role.'.reports.print', request()->only($filterKeys)) }}"><i class="fas fa-print" aria-hidden="true"></i> Print report</a>
+        </div></div>
 
     <section class="card">
         <form method="GET" class="toolbar" role="search">

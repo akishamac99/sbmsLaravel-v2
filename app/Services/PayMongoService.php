@@ -104,7 +104,7 @@ class PayMongoService
         DB::transaction(function () use ($payment, &$booking): void {
             $locked = Payment::whereKey($payment->getKey())->lockForUpdate()->first();
 
-            if (! $locked || $locked->payStatus === 'paid') {
+           if (! $locked || ! in_array($locked->payStatus, ['pending', 'proof-submitted'], true)) {
                 return;
             }
 

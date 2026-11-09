@@ -58,11 +58,11 @@
                         </div>
 
                         <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px;align-items:center">
-                            <form method="POST" action="{{ route('owner.staff-availability.approve', $req->requestID) }}">
+                            <form method="POST" action="{{ route($role . '.staff-availability.approve', $req->requestID) }}">
                                 @csrf
                                 <button class="btn-primary btn-sm" type="submit">Approve</button>
                             </form>
-                            <form method="POST" action="{{ route('owner.staff-availability.reject', $req->requestID) }}" style="display:flex;gap:8px;align-items:center">
+                            <form method="POST" action="{{ route($role . '.staff-availability.reject', $req->requestID) }}" style="display:flex;gap:8px;align-items:center">
                                 @csrf
                                 <input class="form-control" name="review_note" maxlength="255" placeholder="Note to staff (optional)" aria-label="Note to staff">
                                 <button class="btn-ghost btn-sm" type="submit">Decline</button>
@@ -87,7 +87,7 @@
                 @endforeach
             </select>
             @if (array_filter(request()->only(['q', 'role'])))
-                <a class="btn-ghost btn-sm" href="{{ route('owner.staff-availability') }}">Clear</a>
+                <a class="btn-ghost btn-sm" href="{{ route($role . '.staff-availability') }}">Clear</a>
             @endif
         </form>
 
@@ -129,7 +129,7 @@
                                 <div class="row-menu">
                                     <button type="button" class="btn-menu" onclick="toggleMenu(this)" aria-label="Actions for {{ $member->full_name }}"><i class="fas fa-ellipsis-v"></i></button>
                                     <div class="menu-dropdown">
-                                        <button type="button" data-open-form="scheduleModal" data-action="{{ route('owner.staff-availability.update') }}"
+                                        <button type="button" data-open-form="scheduleModal" data-action="{{ route($role . '.staff-availability.update') }}"
                                                 data-record="{{ json_encode($record) }}" data-staff-name="{{ $member->full_name }}"
                                                 @if ($openStaffId === (int) $member->staffID) data-autoopen @endif>
                                             <i class="fas fa-clock"></i> Edit hours
@@ -150,7 +150,7 @@
     <div class="modal" id="scheduleModal" role="dialog" aria-modal="true" aria-labelledby="scheduleTitle" data-modal-form
          @if ($errors->any() && old('_modal') === 'scheduleModal') data-reopen @endif>
         <div class="modal-content modal-lg">
-            <form method="POST" action="{{ route('owner.staff-availability.update') }}" data-create-action="{{ route('owner.staff-availability.update') }}" data-edit-method="PUT">
+            <form method="POST" action="{{ route($role . '.staff-availability.update') }}" data-create-action="{{ route($role . '.staff-availability.update') }}" data-edit-method="PUT">
                 @csrf
                 <input type="hidden" name="_method" value="PUT">
                 <input type="hidden" name="_modal" value="scheduleModal">

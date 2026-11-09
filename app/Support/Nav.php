@@ -25,6 +25,7 @@ class Nav
                 ],
                 'Bookings' => [
                     ['Manage Bookings', 'bookings', 'fa-calendar', null],
+                    ['Schedule', 'schedule', 'fa-calendar-days', null],
                     ['Walk-In', 'walkin', 'fa-user-plus', null],
                     ['Payments', 'payments', 'fa-credit-card', null],
                     ['Attendance', 'attendance', 'fa-check-circle', null],
@@ -33,10 +34,13 @@ class Nav
                     ['Customers', 'customers', 'fa-users', null],
                     ['Services', 'services', 'fa-scissors', null],
                     ['Promos', 'promos', 'fa-tags', null],
+                    ['Service Categories', 'categories.index', 'fa-layer-group', null],
+                    ['Feedback', 'feedback', 'fa-star', null],
                     ['Reports', 'reports', 'fa-chart-bar', null],
                 ],
                 'Team' => [
                     ['Staff', 'staff.manage', 'fa-id-card', null],
+                    ['Archived Accounts', 'accounts.archived', 'fa-box-archive', null],
                     ['Staff Availability', 'staff-availability', 'fa-clock', null],
                 ],
                 'Settings' => [
@@ -54,6 +58,7 @@ class Nav
                 ],
                 'Bookings' => [
                     ['Manage Bookings', 'bookings', 'fa-calendar', 'bookings'],
+                    ['Schedule', 'schedule', 'fa-calendar-days', 'bookings'],
                     ['Walk-In', 'walkin', 'fa-user-plus', 'walkin'],
                     ['Payments', 'payments', 'fa-credit-card', 'payments'],
                     ['Attendance', 'attendance', 'fa-check-circle', 'attendance'],
@@ -61,8 +66,11 @@ class Nav
                 'Business' => [
                     ['Customers', 'customers', 'fa-users', 'customers'],
                     ['Services', 'services', 'fa-scissors', 'services'],
+                    ['Service Categories', 'categories.index', 'fa-layer-group', 'services'],
+                    ['Feedback', 'feedback', 'fa-star', null],
                     ['Reports', 'reports', 'fa-chart-bar', 'reports'],
                     ['Staff Directory', 'staff', 'fa-id-card', 'staff'],
+                    ['Staff Availability', 'staff-availability', 'fa-clock', 'staff'],
                 ],
                 'Settings' => [
                     ['My Profile', 'profile', 'fa-user', null],
@@ -77,6 +85,9 @@ class Nav
                     ['My Bookings', 'bookings', 'fa-calendar', null],
                     ['Walk-In', 'walkin', 'fa-user-plus', null],
                     ['Attendance', 'attendance', 'fa-check-circle', null],
+                    ['My Feedback', 'feedback', 'fa-star', null],
+                    ['Schedule', 'schedule', 'fa-calendar-days', null],
+                    ['My Customers', 'customers', 'fa-users', null],
                 ],
                 'Settings' => [
                     ['My Profile', 'profile', 'fa-user', null],

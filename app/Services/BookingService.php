@@ -225,6 +225,15 @@ class BookingService
                     $item = $line['item'];
                     $isHome = $line['mode'] === 'home_service';
 
+                    // SDD Scenario 1: lock the staff member's row, then recheck the slot inside the transaction,
+                    // so two customers cannot both book the same staff member and time.
+                    if ($item->staffID) {
+                        Staff::whereKey($item->staffID)->lockForUpdate()->first();
+                    }
+                    if ($this->cart->validate($item->serviceID, $item->staffID, $item->bookingDate, $item->bookingTime)) {
+                        throw new DomainException('Slot no longer available. Please choose another time.');
+                    }
+
                     $booking = Booking::create([
                         'bookingRef' => $this->newReference(),
                         'customerID' => $customer->getKey(),

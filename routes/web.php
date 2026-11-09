@@ -20,6 +20,18 @@ use App\Http\Controllers\MessengerLinkController;
 use App\Http\Controllers\MessengerWebhookController;
 use App\Http\Controllers\ChatController;
 use App\Http\Controllers\Owner\AdministrationController;
+use App\Http\Controllers\Owner\DeleteAccountController;
+use App\Http\Controllers\Owner\RestoreAccountController;
+use App\Http\Controllers\Portal\BlockCustomerController;
+use App\Http\Controllers\Portal\DeleteServiceController;
+use App\Http\Controllers\Portal\DownloadReportController;
+use App\Http\Controllers\Portal\PrintReportController;
+use App\Http\Controllers\Portal\ServiceCategoryController;
+use App\Http\Controllers\Portal\ViewFeedbackController;
+use App\Http\Controllers\Portal\EditBookingController;
+use App\Http\Controllers\Portal\RecordPaymentController;
+use App\Http\Controllers\Portal\ViewCustomerRecordController;
+use App\Http\Controllers\Portal\ViewScheduleController;
 use App\Http\Controllers\Owner\SalonHoursController;
 use App\Http\Controllers\PaymentProofFileController;
 use App\Http\Controllers\PayMongoWebhookController;
@@ -90,11 +102,11 @@ Route::middleware('auth:customer')->prefix('customer')->name('customer.')->group
     Route::post('/cart', [ServiceController::class, 'addToCart'])->name('cart.add');
     Route::put('/cart/{cart}', [ServiceController::class, 'updateCart'])->name('cart.update');
     Route::delete('/cart/{cart}', [ServiceController::class, 'removeCart'])->name('cart.remove');
-    Route::post('/cart/checkout', [ServiceController::class, 'selectForCheckout'])->name('cart.checkout');
+    Route::post('/cart/checkout', [ServiceController::class, 'selectForCheckout'])->middleware('customer.active')->name('cart.checkout');
     Route::get('/staff-availability', StaffAvailabilityController::class)->name('staff-availability');
     Route::get('/slot-availability', SlotAvailabilityController::class)->name('slot-availability');
-    Route::get('/checkout', [CheckoutController::class, 'show'])->name('checkout');
-    Route::post('/checkout', [CheckoutController::class, 'place'])->name('checkout.place');
+    Route::get('/checkout', [CheckoutController::class, 'show'])->middleware('customer.active')->name('checkout');
+    Route::post('/checkout', [CheckoutController::class, 'place'])->middleware('customer.active')->name('checkout.place');
     Route::post('/checkout/promo', [CheckoutController::class, 'promo'])->name('checkout.promo');
 
     Route::get('/bookings', [BookingController::class, 'index'])->name('bookings');
@@ -132,6 +144,13 @@ Route::middleware('auth:staff')->group(function () {
         Route::get('/bookings', [StaffBookingController::class, 'index'])->name('bookings');
         Route::get('/bookings/{booking}', [BookingDetailController::class, 'show'])->name('bookings.show');
         Route::post('/bookings/{booking}/approve', [StaffBookingController::class, 'approve'])->name('bookings.approve');
+
+        // Update Booking (own bookings), View Schedule, View Customer Records
+        Route::get('/bookings/{booking}/edit', [EditBookingController::class, 'edit'])->name('bookings.edit');
+        Route::put('/bookings/{booking}', [EditBookingController::class, 'update'])->name('bookings.update');
+        Route::get('/schedule', ViewScheduleController::class)->name('schedule');
+        Route::get('/customers', [ViewCustomerRecordController::class, 'index'])->name('customers');
+        Route::get('/customers/{customer}', [ViewCustomerRecordController::class, 'show'])->name('customers.show');
         Route::get('/attendance', [StaffBookingController::class, 'attendance'])->name('attendance');
         Route::post('/attendance/{booking}', [StaffBookingController::class, 'markAttendance'])->name('attendance.mark');
         Route::get('/walkin', [WalkinController::class, 'index'])->name('walkin');
@@ -146,6 +165,9 @@ Route::middleware('auth:staff')->group(function () {
         Route::get('/notifications', [StaffNotificationController::class, 'index'])->name('notifications');
         Route::post('/notifications/read-all', [StaffNotificationController::class, 'readAll'])->name('notifications.read-all');
         Route::post('/notifications/{id}/read', [StaffNotificationController::class, 'read'])->name('notifications.read');
+
+        // UC36 View Feedback (about themselves)
+        Route::get('/feedback', ViewFeedbackController::class)->name('feedback');
     });
 
     Route::middleware('role:manager')->prefix('manager')->name('manager.')->group(function () {
@@ -155,6 +177,17 @@ Route::middleware('auth:staff')->group(function () {
         Route::post('/bookings/{booking}/cancel', [BookingDetailController::class, 'cancel'])->middleware('perm:bookings,edit')->name('bookings.cancel');
         Route::post('/bookings/{booking}/approve', [OperationsController::class, 'approveBooking'])->middleware('perm:bookings,edit')->name('bookings.approve');
         Route::post('/bookings/{booking}/decline', [OperationsController::class, 'declineBooking'])->middleware('perm:bookings,edit')->name('bookings.decline');
+
+        // Update Booking / Assign Staff, Record Payment, Schedule, Customer records, Staff availability
+        Route::get('/bookings/{booking}/edit', [EditBookingController::class, 'edit'])->middleware('perm:bookings,edit')->name('bookings.edit');
+        Route::put('/bookings/{booking}', [EditBookingController::class, 'update'])->middleware('perm:bookings,edit')->name('bookings.update');
+        Route::post('/bookings/{booking}/payments', RecordPaymentController::class)->middleware(['perm:payments,edit', 'throttle:30,1'])->name('bookings.payments.record');
+        Route::get('/schedule', ViewScheduleController::class)->middleware('perm:bookings')->name('schedule');
+        Route::get('/customers/{customer}', [ViewCustomerRecordController::class, 'show'])->middleware('perm:customers')->name('customers.show');
+        Route::get('/staff-availability', [AccountController::class, 'manageAvailability'])->middleware('perm:staff')->name('staff-availability');
+        Route::put('/staff-availability', [AccountController::class, 'updateStaffAvailability'])->middleware('perm:staff,edit')->name('staff-availability.update');
+        Route::post('/staff-availability/requests/{availabilityRequest}/approve', [AccountController::class, 'approveAvailabilityRequest'])->middleware('perm:staff,edit')->name('staff-availability.approve');
+        Route::post('/staff-availability/requests/{availabilityRequest}/reject', [AccountController::class, 'rejectAvailabilityRequest'])->middleware('perm:staff,edit')->name('staff-availability.reject');
         Route::get('/payments', [OperationsController::class, 'payments'])->middleware('perm:payments')->name('payments');
         Route::post('/payments/{payment}/confirm', [OperationsController::class, 'confirmPayment'])->middleware('perm:payments,edit')->name('payments.confirm');
         Route::post('/payments/{payment}/reject', [OperationsController::class, 'rejectPayment'])->middleware('perm:payments,edit')->name('payments.reject');
@@ -182,6 +215,20 @@ Route::middleware('auth:staff')->group(function () {
         Route::post('/notifications/read-all', [StaffNotificationController::class, 'readAll'])->name('notifications.read-all');
         Route::post('/notifications/{id}/read', [StaffNotificationController::class, 'read'])->name('notifications.read');
         Route::put('/profile/password', [AccountController::class, 'updatePassword'])->name('profile.password');
+
+        // UC53, UC25, UC54, UC36, UC33/42, UC43 (what a manager may do still follows the owner's permissions)
+        Route::post('/customers/{customer}/block', [BlockCustomerController::class, 'block'])->middleware('perm:customers,edit')->name('customers.block');
+        Route::post('/customers/{customer}/unblock', [BlockCustomerController::class, 'unblock'])->middleware('perm:customers,edit')->name('customers.unblock');
+        Route::get('/services/{service}/delete', [DeleteServiceController::class, 'confirm'])->middleware('perm:services,edit')->name('services.delete');
+        Route::delete('/services/{service}', [DeleteServiceController::class, 'destroy'])->middleware('perm:services,edit')->name('services.destroy');
+        Route::get('/categories', [ServiceCategoryController::class, 'index'])->middleware('perm:services')->name('categories.index');
+        Route::post('/categories', [ServiceCategoryController::class, 'store'])->middleware('perm:services,edit')->name('categories.store');
+        Route::put('/categories/{category}', [ServiceCategoryController::class, 'update'])->middleware('perm:services,edit')->name('categories.update');
+        Route::delete('/categories/{category}', [ServiceCategoryController::class, 'destroy'])->middleware('perm:services,edit')->name('categories.destroy');
+        Route::get('/feedback', ViewFeedbackController::class)->name('feedback');
+        Route::get('/reports/download', [DownloadReportController::class, 'choose'])->middleware('perm:reports')->name('reports.download.form');
+        Route::get('/reports/download/file', [DownloadReportController::class, 'download'])->middleware(['perm:reports', 'throttle:10,1'])->name('reports.download');
+        Route::get('/reports/print', PrintReportController::class)->middleware('perm:reports')->name('reports.print');
     });
 
     Route::middleware('role:owner')->prefix('owner')->name('owner.')->group(function () {
@@ -191,6 +238,13 @@ Route::middleware('auth:staff')->group(function () {
         Route::post('/bookings/{booking}/cancel', [BookingDetailController::class, 'cancel'])->name('bookings.cancel');
         Route::post('/bookings/{booking}/approve', [OperationsController::class, 'approveBooking'])->name('bookings.approve');
         Route::post('/bookings/{booking}/decline', [OperationsController::class, 'declineBooking'])->name('bookings.decline');
+
+        // Update Booking / Assign Staff, Record Payment, Schedule, Customer records
+        Route::get('/bookings/{booking}/edit', [EditBookingController::class, 'edit'])->name('bookings.edit');
+        Route::put('/bookings/{booking}', [EditBookingController::class, 'update'])->name('bookings.update');
+        Route::post('/bookings/{booking}/payments', RecordPaymentController::class)->middleware('throttle:30,1')->name('bookings.payments.record');
+        Route::get('/schedule', ViewScheduleController::class)->name('schedule');
+        Route::get('/customers/{customer}', [ViewCustomerRecordController::class, 'show'])->name('customers.show');
         Route::get('/payments', [OperationsController::class, 'payments'])->name('payments');
         Route::post('/payments/{payment}/confirm', [OperationsController::class, 'confirmPayment'])->name('payments.confirm');
         Route::post('/payments/{payment}/reject', [OperationsController::class, 'rejectPayment'])->name('payments.reject');
@@ -235,5 +289,31 @@ Route::middleware('auth:staff')->group(function () {
         Route::post('/staff-availability/requests/{availabilityRequest}/approve', [AccountController::class, 'approveAvailabilityRequest'])->name('staff-availability.approve');
         Route::post('/staff-availability/requests/{availabilityRequest}/reject', [AccountController::class, 'rejectAvailabilityRequest'])->name('staff-availability.reject');
         Route::post('/staff/{staff}/toggle', [AdministrationController::class, 'toggleStaff'])->name('staff.toggle');
+
+        // UC05 Delete Account / UC07 Restore Account
+        Route::get('/accounts/archived', [RestoreAccountController::class, 'archived'])->name('accounts.archived');
+        Route::get('/accounts/staff/{staff}/restore', [RestoreAccountController::class, 'confirm'])->name('accounts.restore.confirm');
+        Route::post('/accounts/staff/{staff}/restore', [RestoreAccountController::class, 'restore'])->name('accounts.restore');
+        Route::get('/accounts/staff/{staff}/delete', [DeleteAccountController::class, 'confirmStaff'])->name('accounts.staff.confirm');
+        Route::delete('/accounts/staff/{staff}', [DeleteAccountController::class, 'destroyStaff'])->middleware('throttle:10,1')->name('accounts.staff.destroy');
+        Route::get('/accounts/customers/{customer}/delete', [DeleteAccountController::class, 'confirmCustomer'])->name('accounts.customer.confirm');
+        Route::delete('/accounts/customers/{customer}', [DeleteAccountController::class, 'destroyCustomer'])->middleware('throttle:10,1')->name('accounts.customer.destroy');
+        // UC53 Block / Unblock Customer
+        Route::post('/customers/{customer}/block', [BlockCustomerController::class, 'block'])->name('customers.block');
+        Route::post('/customers/{customer}/unblock', [BlockCustomerController::class, 'unblock'])->name('customers.unblock');
+        // UC25 Delete Service
+        Route::get('/services/{service}/delete', [DeleteServiceController::class, 'confirm'])->name('services.delete');
+        Route::delete('/services/{service}', [DeleteServiceController::class, 'destroy'])->name('services.destroy');
+        // UC54 Manage Service Categories
+        Route::get('/categories', [ServiceCategoryController::class, 'index'])->name('categories.index');
+        Route::post('/categories', [ServiceCategoryController::class, 'store'])->name('categories.store');
+        Route::put('/categories/{category}', [ServiceCategoryController::class, 'update'])->name('categories.update');
+        Route::delete('/categories/{category}', [ServiceCategoryController::class, 'destroy'])->name('categories.destroy');
+        // UC36 View Feedback
+        Route::get('/feedback', ViewFeedbackController::class)->name('feedback');
+        // UC33 / UC42 Download Report, UC43 Print Report
+        Route::get('/reports/download', [DownloadReportController::class, 'choose'])->name('reports.download.form');
+        Route::get('/reports/download/file', [DownloadReportController::class, 'download'])->middleware('throttle:10,1')->name('reports.download');
+        Route::get('/reports/print', PrintReportController::class)->name('reports.print');
     });
 });

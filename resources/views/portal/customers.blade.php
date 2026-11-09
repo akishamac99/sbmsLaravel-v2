@@ -46,7 +46,7 @@
                 <tbody>
                     @forelse ($customers as $customer)
                         <tr>
-                            <td><span class="cell-main">{{ $customer->full_name }}</span></td>
+                            <td><a class="cell-main" href="{{ route($role . '.customers.show', $customer) }}">{{ $customer->full_name }}</a></td>
                             <td>
                                 <span class="cell-main" style="font-weight:500">{{ $customer->contactNumber }}</span>
                                 <span class="cell-sub">{{ $customer->contact_email ?? 'No email on file' }}</span>
@@ -79,10 +79,16 @@
                                             <div class="menu-dropdown">
                                                 @foreach (['active' => ['Activate', 'fa-user-check', 'menu-success'], 'inactive' => ['Deactivate', 'fa-user-slash', ''], 'blocked' => ['Block', 'fa-ban', 'menu-danger']] as $status => [$label, $icon, $class])
                                                     @if ($customer->accountStatus !== $status)
-                                                        <form method="POST" action="{{ route($role . '.customers.status', $customer) }}" @if ($status === 'blocked') onsubmit="return confirm('Block {{ $customer->full_name }}? They will not be able to log in or book.')" @endif>
+                                                        @php
+                                                            // UC53: leaving "blocked" is an Unblock; entering it is a Block.
+                                                            $isUnblock = $status === 'active' && $customer->accountStatus === 'blocked';
+                                                            $target = $status === 'blocked' ? route($role . '.customers.block', $customer)
+                                                                : ($isUnblock ? route($role . '.customers.unblock', $customer) : route($role . '.customers.status', $customer));
+                                                        @endphp
+                                                        <form method="POST" action="{{ $target }}" @if ($status === 'blocked') onsubmit="return confirm('Block {{ $customer->full_name }}? They will not be able to log in or book.')" @endif>
                                                             @csrf
-                                                            <input type="hidden" name="accountStatus" value="{{ $status }}">
-                                                            <button type="submit" class="{{ $class }}"><i class="fas {{ $icon }}"></i> {{ $label }}</button>
+                                                            @if (! $isUnblock && $status !== 'blocked')<input type="hidden" name="accountStatus" value="{{ $status }}">@endif
+                                                            <button type="submit" class="{{ $class }}"><i class="fas {{ $icon }}" aria-hidden="true"></i> {{ $isUnblock ? 'Unblock' : $label }}</button>
                                                         </form>
                                                     @endif
                                                 @endforeach

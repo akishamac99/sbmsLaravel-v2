@@ -22,6 +22,9 @@
     <div class="page-actions">
         @include('partials.booking-type', ['booking' => $booking])
         @include('partials.status-badge', ['status' => $booking->bookingStatus])
+        @if ($canEdit)
+            <a class="btn-ghost btn-sm" href="{{ route($role . '.bookings.edit', $booking) }}"><i class="fas fa-pen"></i> Edit booking</a>
+        @endif
     </div>
 </div>
 
@@ -64,6 +67,8 @@
                         <dt>Discount</dt><dd>&#8369;{{ number_format((float) $booking->discount_amount, 2) }}{{ $booking->discount_reason ? ' (' . $booking->discount_reason . ')' : '' }}</dd>
                     @endif
                     <dt>Balance on the day</dt><dd>&#8369;{{ number_format($booking->remaining_balance, 2) }}</dd>
+                    <dt>Paid so far</dt><dd>&#8369;{{ number_format($paid, 2) }}</dd>
+                    <dt>Still to pay</dt><dd>&#8369;{{ number_format($outstanding, 2) }}</dd>
                 </dl>
             </div>
             @if ($booking->payments->isNotEmpty())
@@ -89,6 +94,27 @@
                         </tbody>
                     </table>
                 </div>
+            @endif
+            @if ($canRecordPayment && $outstanding > 0)
+                <form method="POST" action="{{ route($role . '.bookings.payments.record', $booking) }}" class="card-body" style="border-top:1px solid rgba(139,58,82,0.08);display:grid;gap:12px">
+                    @csrf
+                    <strong>Record a payment</strong>
+                    <label class="field"><span class="field-label">Amount (PHP)</span>
+                        <input type="number" name="amount" class="form-control" step="0.01" min="0.01" max="{{ $outstanding }}" value="{{ old('amount', number_format($outstanding, 2, '.', '')) }}" required>
+                    </label>
+                    @error('amount')<div class="field-error" role="alert">{{ $message }}</div>@enderror
+                    <label class="field"><span class="field-label">Method</span>
+                        <select name="method" class="form-control" required>
+                            <option value="cash">Cash</option>
+                            <option value="gcash">GCash</option>
+                            <option value="bank_transfer">Bank transfer</option>
+                        </select>
+                    </label>
+                    <label class="field"><span class="field-label">Reference number <span class="field-hint">Optional</span></span>
+                        <input type="text" name="reference" class="form-control" maxlength="50" value="{{ old('reference') }}">
+                    </label>
+                    <div><button type="submit" class="btn-primary"><i class="fas fa-receipt"></i> Record payment</button></div>
+                </form>
             @endif
         </section>
 

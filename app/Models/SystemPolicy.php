@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\Cache;
 
 class SystemPolicy extends Model
 {
@@ -13,9 +14,23 @@ class SystemPolicy extends Model
     protected $fillable = ['policy_key', 'policy_value', 'description'];
 
     // Read one setting, e.g. SystemPolicy::value('downpayment_percent', 20)
+    // All settings are read in one query and kept for 5 minutes (cleared whenever a setting is saved),
+    // instead of one database query for every setting that a page reads.
     public static function value(string $key, mixed $default = null): mixed
     {
-        return static::where('policy_key', $key)->value('policy_value') ?? $default;
+        return static::allValues()[$key] ?? $default;
+    }
+
+    /** @return array<string, mixed> */
+    private static function allValues(): array
+    {
+        return Cache::remember('system_policies', 300, fn (): array => static::query()->pluck('policy_value', 'policy_key')->all());
+    }
+
+    protected static function booted(): void
+    {
+        static::saved(fn () => Cache::forget('system_policies'));
+        static::deleted(fn () => Cache::forget('system_policies'));
     }
 
     /**

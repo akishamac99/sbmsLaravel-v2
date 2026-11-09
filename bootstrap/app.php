@@ -18,6 +18,7 @@ return Application::configure(basePath: dirname(__DIR__))
         // Short names we can use in routes: role:manager and perm:bookings,edit
         $middleware->alias([
             'role' => EnsureRole::class,
+            'customer.active' => \App\Http\Middleware\EnsureCustomerNotBlocked::class,
             'perm' => EnsureManagerPermission::class,
         ]);
 

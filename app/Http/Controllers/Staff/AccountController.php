@@ -157,6 +157,7 @@ class AccountController extends Controller
             ->get();
 
         return view('owner.staff-availability', [
+            'role' => Auth::guard('staff')->user()->role_slug,
             'staffMembers' => $staffMembers,
             'openStaffId' => (int) $request->query('staff_id'),
             'days' => self::DAYS,
@@ -172,7 +173,7 @@ class AccountController extends Controller
         ]);
         $staff = Staff::whereKey($validated['staff_id'])->whereIn('role', self::SCHEDULABLE_ROLES)->where('is_archived', 0)->firstOrFail();
         $this->replaceSchedule($staff, $validated['availability'] ?? []);
-        SystemLog::record('owner', (int) Auth::guard('staff')->id(), 'update_staff_availability', "Updated availability for {$staff->full_name}");
+        SystemLog::record(Auth::guard('staff')->user()->role_slug, (int) Auth::guard('staff')->id(), 'update_staff_availability', "Updated availability for {$staff->full_name}");
 
         return back()->with('status', "Working hours saved for {$staff->full_name}.");
     }
@@ -228,7 +229,7 @@ class AccountController extends Controller
             UserNotification::send($staff->role_slug, (int) $staff->getKey(), 'Availability approved', 'Your new working hours are now active.');
         });
 
-        SystemLog::record('owner', (int) Auth::guard('staff')->id(), 'approve_availability', "Approved availability request #{$availabilityRequest->getKey()} for {$staff->full_name}");
+        SystemLog::record(Auth::guard('staff')->user()->role_slug, (int) Auth::guard('staff')->id(), 'approve_availability', "Approved availability request #{$availabilityRequest->getKey()} for {$staff->full_name}");
 
         return back()->with('status', "Approved. {$staff->full_name}'s new hours are active.");
     }
@@ -262,7 +263,7 @@ class AccountController extends Controller
             }
         });
 
-        SystemLog::record('owner', (int) Auth::guard('staff')->id(), 'reject_availability', "Rejected availability request #{$availabilityRequest->getKey()}");
+        SystemLog::record(Auth::guard('staff')->user()->role_slug, (int) Auth::guard('staff')->id(), 'reject_availability', "Rejected availability request #{$availabilityRequest->getKey()}");
 
         return back()->with('status', 'Request declined.');
     }

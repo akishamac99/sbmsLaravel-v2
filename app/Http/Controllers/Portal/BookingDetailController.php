@@ -4,6 +4,8 @@ namespace App\Http\Controllers\Portal;
 
 use App\Http\Controllers\Controller;
 use App\Models\Booking;
+use App\Support\BookingAccess;
+use App\Support\PaymentLedger;
 use App\Models\Permission;
 use App\Models\SystemLog;
 use App\Models\UserNotification;
@@ -34,6 +36,10 @@ class BookingDetailController extends Controller
             'booking' => $booking,
             'role' => $role,
             'canCancel' => $this->canCancel($role, $booking),
+            'canEdit' => BookingAccess::canEdit($user, $booking),
+            'canRecordPayment' => BookingAccess::canRecordPayment($user) && in_array($booking->bookingStatus, ['pending', 'approved', 'completed'], true),
+            'paid' => PaymentLedger::paid($booking),
+            'outstanding' => PaymentLedger::outstanding($booking),
         ]);
     }
 

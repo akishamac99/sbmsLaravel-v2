@@ -99,6 +99,9 @@
                                                     <i class="fas {{ $service->is_active ? 'fa-eye-slash' : 'fa-eye' }}"></i> {{ $service->is_active ? 'Deactivate' : 'Activate' }}
                                                 </button>
                                             </form>
+                                            <form method="GET" action="{{ route($role . '.services.delete', $service) }}">
+                                                <button type="submit" class="menu-danger"><i class="fas fa-trash" aria-hidden="true"></i> Delete</button>
+                                            </form>
                                         </div>
                                     </div>
                                 </td>

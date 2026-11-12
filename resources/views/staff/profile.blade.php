@@ -37,7 +37,7 @@
                             <span class="field-hint">You log in with this address.</span>
                         </label>
                         <label class="field">Contact number
-                            <input class="form-control" name="contactNumber" value="{{ old('contactNumber', $staff->contactNumber) }}" maxlength="20" inputmode="tel">
+                            <input class="form-control" name="contactNumber" value="{{ old('contactNumber', $staff->contactNumber) }}" maxlength="20" inputmode="tel" autocomplete="tel" placeholder="09171234567">
                         </label>
                     </div>
                     <div class="form-actions"><button class="btn-primary" type="submit">Save changes</button></div>

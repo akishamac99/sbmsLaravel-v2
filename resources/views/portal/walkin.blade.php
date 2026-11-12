@@ -36,7 +36,8 @@
                                 <input class="form-control" name="customer_name" value="{{ old('customer_name') }}" maxlength="100" required autocomplete="off" data-summary="customer">
                             </label>
                             <label class="field"><span class="field-label">Contact number <span class="req" aria-hidden="true">*</span></span>
-                                <input class="form-control" name="contact_number" value="{{ old('contact_number') }}" maxlength="20" required inputmode="tel" placeholder="09XXXXXXXXX">
+                                <input class="form-control" name="contact_number" value="{{ old('contact_number') }}" maxlength="20" inputmode="tel" placeholder="09171234567" aria-describedby="walkPhoneHint">
+                                <span class="field-hint" id="walkPhoneHint">Optional. Used to recognise returning customers.</span>
                             </label>
                             <label class="field">Email
                                 <input class="form-control" type="email" name="customer_email" value="{{ old('customer_email') }}" maxlength="100" placeholder="Optional">
@@ -179,7 +180,7 @@
                                             @endif
                                             @if ($canComplete)
                                                 <form method="POST" action="{{ route($role . '.walkin.complete', $booking) }}"
-                                                      onsubmit="return confirm('{{ $booking->remaining_balance > 0 ? 'Collect the balance of PHP ' . number_format($booking->remaining_balance, 2) . ' and mark' : 'Mark' }} this walk-in as completed?')">
+                                                      onsubmit="return confirm('{{ $booking->remaining_balance > 0 ? 'Collect the balance of ₱' . number_format($booking->remaining_balance, 2) . ' and mark' : 'Mark' }} this walk-in as completed?')">
                                                     @csrf
                                                     <button type="submit" class="menu-success"><i class="fas fa-check"></i> Mark completed</button>
                                                 </form>

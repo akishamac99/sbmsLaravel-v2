@@ -15,3 +15,10 @@ bootstrap/cache/*.php
 tests
 .idea
 .vscode
+
+# Local work folders (not part of the app)
+_backup_*
+_gaps_tmp
+_to_delete
+_sbms_*.zip
+docs

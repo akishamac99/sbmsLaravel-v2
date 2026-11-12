@@ -108,7 +108,7 @@
                         @endif
                         <form method="POST" action="{{ route('customer.bookings.cancel', $booking->bookingRef) }}" onsubmit="return confirm('Cancel this booking?')">
                             @csrf
-                            <button type="submit" class="btn-ghost btn-sm"><i class="fas fa-times"></i> Cancel booking</button>
+                            <button type="submit" class="btn-ghost btn-sm"><i class="fas fa-ban"></i> Cancel booking</button>
                         </form>
                     </div>
                 @else

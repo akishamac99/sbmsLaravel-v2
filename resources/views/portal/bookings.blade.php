@@ -86,7 +86,7 @@
                                             </button>
                                             <form method="POST" action="{{ route($role . '.bookings.decline', $booking) }}" onsubmit="return confirm('Decline booking {{ $booking->bookingRef }}? The customer will be notified.')">
                                                 @csrf
-                                                <button type="submit" class="menu-danger"><i class="fas fa-times"></i> Decline</button>
+                                                <button type="submit" class="menu-danger"><i class="fas fa-ban"></i> Decline</button>
                                             </form>
                                         @endif
                                     </div>

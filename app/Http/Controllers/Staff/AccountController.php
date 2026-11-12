@@ -36,7 +36,7 @@ class AccountController extends Controller
             'firstName' => ['required', 'string', 'max:50'],
             'lastName' => ['required', 'string', 'max:50'],
             'email' => ['required', 'email', 'max:100', 'unique:salon_staff,email,'.$staff->getKey().',staffID'],
-            'contactNumber' => ['nullable', 'string', 'max:20'],
+            'contactNumber' => ['nullable', 'string', 'max:20', new \App\Rules\PhilippineMobileNumber],
         ]);
 
         $staff->update($validated);

@@ -66,8 +66,8 @@ class OtpService
     }
 
     // Email the code.
-    public function send(string $email, string $code): void
+    public function send(string $email, string $code, string $purpose = 'verification'): void
     {
-        Mail::to($email)->send(new OtpMail($code, self::VALIDITY_MINUTES));
+        Mail::to($email)->send(new OtpMail($code, self::VALIDITY_MINUTES, $purpose));
     }
 }

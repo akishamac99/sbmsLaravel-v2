@@ -17,7 +17,7 @@
         </div>
     </div>
 
-    <form method="POST" action="{{ route($role . '.bookings.update', $booking) }}" class="card" style="max-width:720px">
+    <form method="POST" action="{{ route($role . '.bookings.update', $booking) }}" class="card" style="max-width:720px" data-warn-unsaved>
         @csrf
         @method('PUT')
         <div class="card-body">

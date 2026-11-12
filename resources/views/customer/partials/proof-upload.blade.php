@@ -11,7 +11,7 @@
             <div class="upload-preview-info">
                 <span class="upload-preview-name" data-file-name></span>
                 <span class="upload-preview-size" data-file-size></span>
-                <button type="button" class="upload-preview-remove" data-clear-upload><i class="fas fa-trash-alt"></i> Remove</button>
+                <button type="button" class="upload-preview-remove" data-clear-upload><i class="fas fa-times"></i> Remove</button>
             </div>
         </div>
     </div>

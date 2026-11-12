@@ -33,8 +33,8 @@
                 @error('email')<div class="err">{{ $message }}</div>@enderror
             </div>
             <div class="field">
-                <label>Contact number</label>
-                <input name="contact_number" value="{{ old('contact_number') }}" required>
+                <label for="reg-phone">Contact number <small>(optional)</small></label>
+                <input id="reg-phone" name="contact_number" value="{{ old('contact_number') }}" inputmode="tel" autocomplete="tel" maxlength="16" placeholder="09171234567">
                 @error('contact_number')<div class="err">{{ $message }}</div>@enderror
             </div>
             <div class="row2">

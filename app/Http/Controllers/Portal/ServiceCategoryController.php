@@ -20,6 +20,7 @@ class ServiceCategoryController extends Controller
         return view('portal.service-categories', [
             'categories' => ServiceCategory::withCount('services')->orderBy('category_name')->get(),
             'role' => Auth::guard('staff')->user()->role_slug,
+            'canEdit' => Auth::guard('staff')->user()->isOwner() || \App\Models\Permission::allows('Manager', 'services', 'edit'),
         ]);
     }
 

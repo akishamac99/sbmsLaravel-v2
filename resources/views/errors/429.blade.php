@@ -1,0 +1,7 @@
+@extends('errors.layout', ['code' => 429])
+@section('title', 'Too many tries')
+@section('icon', '🚦')
+@section('heading', 'Please slow down a little')
+@section('message', 'You tried too many times in a short while. Please wait a minute and try again.')
+@section('hint', 'This protects your account from being guessed.')
+@section('retry', '1')

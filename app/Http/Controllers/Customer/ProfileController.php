@@ -4,6 +4,8 @@ namespace App\Http\Controllers\Customer;
 
 use App\Http\Controllers\Controller;
 use App\Models\Customer;
+use App\Rules\PhilippineMobileNumber;
+use App\Support\PhoneNumber;
 use App\Models\SystemLog;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -23,16 +25,17 @@ class ProfileController extends Controller
     {
         $customer = Customer::findOrFail(Auth::guard('customer')->id());
 
+        PhoneNumber::mergeNormalized($request, 'contactNumber');
+
         // Email is not editable here: it was verified by OTP at registration.
         $validated = $request->validate([
             'firstName'     => ['required', 'string', 'max:50'],
             'middleName'    => ['nullable', 'string', 'max:50'],
             'lastName'      => ['required', 'string', 'max:50'],
-            'contactNumber' => ['required', 'string', 'max:20', 'regex:/^[0-9+\-\s()]{7,20}$/',
+            'contactNumber' => ['nullable', 'string', 'max:20', new PhilippineMobileNumber,
                                 'unique:customer,contactNumber,' . $customer->getKey() . ',customerID'],
             'home_address'  => ['nullable', 'string', 'max:500'],
         ], [
-            'contactNumber.regex'  => 'Enter a valid contact number.',
             'contactNumber.unique' => 'That contact number is already used by another account.',
         ]);
 

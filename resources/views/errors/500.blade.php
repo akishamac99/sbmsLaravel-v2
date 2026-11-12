@@ -1,0 +1,7 @@
+@extends('errors.layout', ['code' => 500])
+@section('title', 'Something went wrong')
+@section('icon', '🛠')
+@section('heading', 'Sorry, something went wrong on our side')
+@section('message', 'We couldn\'t finish what you asked. Your information is safe. Please try again in a moment.')
+@section('hint', 'If it keeps happening, please tell the salon staff the time it happened.')
+@section('retry', '1')

@@ -61,7 +61,7 @@
                             <td>
                                 <div class="cell-thumb">
                                     @if ($service->image)
-                                        <img src="{{ $service->image_url }}" alt="" loading="lazy">
+                                        <img src="{{ $service->image_url }}" alt="" loading="lazy" onerror="this.onerror=null;this.src='{{ asset('assets/images/salonLogo.jpg') }}'">
                                     @else
                                         <span class="thumb-ph"><i class="fas fa-spa"></i></span>
                                     @endif

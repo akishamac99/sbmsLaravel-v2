@@ -12,6 +12,7 @@ export default defineConfig({
                 'resources/css/customer-profile.css',
                 'resources/css/landing.css',
                 'resources/js/app.js',
+                'resources/js/ux-standards.js',
                 'resources/js/customer-services.js',
                 'resources/js/customer-checkout.js',
                 'resources/js/customer-bookings.js',

@@ -7,6 +7,8 @@ use App\Models\Booking;
 use App\Models\Customer;
 use App\Models\SystemLog;
 use App\Services\OtpService;
+use App\Rules\PhilippineMobileNumber;
+use App\Support\PhoneNumber;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
@@ -30,13 +32,14 @@ class RegisterController extends Controller
     public function sendOtp(Request $request)
     {
         $request->merge(['email' => Str::lower(trim((string) $request->input('email')))]);
+        PhoneNumber::mergeNormalized($request, 'contact_number');
 
         $data = $request->validate([
             'first_name' => ['required', 'string', 'max:50'],
             'last_name' => ['required', 'string', 'max:50'],
             // Walk-in records have no login, so their email or phone can still be used to sign up.
             'email' => ['required', 'email', 'max:100', Rule::unique('customer', 'email')->where('is_walkin', 0)],
-            'contact_number' => ['required', 'string', 'max:20', Rule::unique('customer', 'contactNumber')->where('is_walkin', 0)],
+            'contact_number' => ['nullable', 'string', 'max:20', new PhilippineMobileNumber, Rule::unique('customer', 'contactNumber')->where('is_walkin', 0)],
             'password' => ['required', 'string', 'min:6', 'confirmed'],
         ], [
             'email.unique' => 'Email already registered',
@@ -59,7 +62,7 @@ class RegisterController extends Controller
             'firstName' => $data['first_name'],
             'lastName' => $data['last_name'],
             'email' => $data['email'],
-            'contactNumber' => $data['contact_number'],
+            'contactNumber' => $data['contact_number'] ?? null,
             'password' => Hash::make($data['password']),
         ]);
 
@@ -133,7 +136,7 @@ class RegisterController extends Controller
      * Create the account, or turn the customer's earlier walk-in record(s) into it,
      * so their visit history follows them.
      *
-     * @param  array{firstName: string, lastName: string, email: string, contactNumber: string, password: string}  $reg
+     * @param  array{firstName: string, lastName: string, email: string, contactNumber: ?string, password: string}  $reg
      */
     private function createAccount(array $reg): Customer
     {
@@ -149,7 +152,8 @@ class RegisterController extends Controller
         ];
 
         $walkins = Customer::where('is_walkin', 1)
-            ->where(fn ($query) => $query->where('email', $reg['email'])->orWhere('contactNumber', $reg['contactNumber']))
+            ->where(fn ($query) => $query->where('email', $reg['email'])
+                ->when($reg['contactNumber'], fn ($q) => $q->orWhere('contactNumber', $reg['contactNumber'])))
             ->orderBy('customerID')
             ->get();
 

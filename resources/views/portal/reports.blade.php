@@ -68,14 +68,14 @@
     </section>
 
     <div class="owner-metric-grid">
-        @foreach ([['Total Bookings', $totalBookings], ['Pending', $pendingBookings], ['Completed', $completedBookings], ['Completed Revenue', 'PHP ' . number_format($completedRevenue, 2)], ['Feedback', $feedbackCount]] as [$label, $value])
+        @foreach ([['Total Bookings', $totalBookings], ['Pending', $pendingBookings], ['Completed', $completedBookings], ['Completed Revenue', '₱' . number_format($completedRevenue, 2)], ['Feedback', $feedbackCount]] as [$label, $value])
             <div class="owner-metric"><strong class="owner-metric-value">{{ $value }}</strong><span class="owner-metric-label">{{ $label }}</span></div>
         @endforeach
     </div>
 
     <section class="card"><div class="card-header"><span>Revenue by Service <span class="card-sub">Excludes cancelled, declined and no-show bookings.</span></span></div><div class="card-body owner-table-wrap">
         <table class="table"><thead><tr><th>Service</th><th>Category</th><th>Bookings</th><th>Revenue</th></tr></thead><tbody>
-            @forelse ($byService as $row)<tr><td>{{ $row->serviceName }}</td><td>{{ $row->category ?? 'Uncategorized' }}</td><td>{{ $row->bookings_count }}</td><td>PHP {{ number_format((float) $row->total_revenue, 2) }}</td></tr>@empty<tr><td colspan="4" style="text-align:center;color:var(--brown-light)">No bookings match these filters.</td></tr>@endforelse
+            @forelse ($byService as $row)<tr><td>{{ $row->serviceName }}</td><td>{{ $row->category ?? 'Uncategorized' }}</td><td>{{ $row->bookings_count }}</td><td>₱{{ number_format((float) $row->total_revenue, 2) }}</td></tr>@empty<tr><td colspan="4" style="text-align:center;color:var(--brown-light)">No bookings match these filters.</td></tr>@endforelse
         </tbody></table>
     </div></section>
 
@@ -111,7 +111,7 @@
                             <td>{{ $booking->staff?->full_name ?? 'Unassigned' }}</td>
                             <td>@include('partials.status-badge', ['status' => $booking->bookingStatus])</td>
                             <td>@include('partials.status-badge', ['status' => $booking->paymentStatus])</td>
-                            <td style="text-align:right" class="nowrap">PHP {{ number_format((float) $booking->total_amount, 2) }}</td>
+                            <td style="text-align:right" class="nowrap">₱{{ number_format((float) $booking->total_amount, 2) }}</td>
                         </tr>
                     @empty
                         <tr><td colspan="7" class="empty-state"><i class="fas fa-chart-bar"></i>No bookings match these filters.</td></tr>

@@ -24,9 +24,13 @@ function toggleMenu(button) {
         closeAllMenus();
 
         // Toggle current menu
+        button.setAttribute('aria-haspopup', 'true');
+        button.setAttribute('aria-expanded', String(willOpen));
         if (willOpen) {
             menu.classList.add('open');
             setActionMenuContainerState(menu, true);
+            const firstItem = menu.querySelector('button, a');
+            if (firstItem) firstItem.focus();
         }
     }
 }
@@ -38,6 +42,8 @@ function closeAllMenus() {
     document.querySelectorAll('.menu-dropdown.open').forEach(menu => {
         menu.classList.remove('open');
         setActionMenuContainerState(menu, false);
+        const trigger = menu.previousElementSibling;
+        if (trigger) { trigger.setAttribute('aria-expanded', 'false'); }
     });
 }
 
@@ -61,8 +67,13 @@ function setActionMenuContainerState(menu, isOpen) {
 function openModal(modalId) {
     const modal = document.getElementById(modalId);
     if (modal) {
+        window.__lastModalTrigger = document.activeElement;
+        modal.setAttribute('role', 'dialog');
+        modal.setAttribute('aria-modal', 'true');
         modal.classList.add('open');
         closeAllMenus();
+        const focusable = modal.querySelector('input:not([type=hidden]), select, textarea, button:not(.close-modal), a[href]');
+        if (focusable) focusable.focus();
     }
 }
 
@@ -70,17 +81,25 @@ function openModal(modalId) {
  * Close modal dialog
  * @param {string} modalId - The ID of the modal element
  */
+function restoreModalFocus() {
+    const t = window.__lastModalTrigger;
+    if (t && document.contains(t) && typeof t.focus === 'function') { t.focus(); }
+    window.__lastModalTrigger = null;
+}
+
 function closeModal(modalId) {
     if (!modalId) {
         document.querySelectorAll('.modal.open').forEach(modal => {
             modal.classList.remove('open');
         });
+        restoreModalFocus();
         return;
     }
 
     const modal = document.getElementById(modalId);
     if (modal) {
         modal.classList.remove('open');
+        restoreModalFocus();
     }
 }
 
@@ -101,9 +120,11 @@ document.addEventListener('click', function(e) {
  */
 document.addEventListener('keydown', function(e) {
     if (e.key === 'Escape') {
+        const hadModal = document.querySelector('.modal.open');
         document.querySelectorAll('.modal.open').forEach(modal => {
             modal.classList.remove('open');
         });
+        if (hadModal) { restoreModalFocus(); }
         closeAllMenus();
     }
 });
@@ -126,6 +147,7 @@ document.addEventListener('click', function(e) {
  * @param {Function} callback - Function to execute if confirmed
  */
 function confirmAction(message, callback) {
+    if (window.uxConfirm) { window.uxConfirm(message).then(function (ok) { if (ok) callback(); }); return; }
     if (confirm(message)) {
         callback();
     }

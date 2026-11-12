@@ -6,7 +6,8 @@
     <title>Janet's Beauty Salon | Baguio City</title>
     <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
-    @vite(['resources/css/landing.css'])
+    @vite(['resources/css/landing.css', 'resources/js/ux-standards.js'])
+    @include('partials.a11y-widget')
 </head>
 <body>
 @php
@@ -131,7 +132,7 @@
                                 <h3>{{ $service->serviceName }}</h3>
                                 <p>{{ $service->category?->category_name }}</p>
                                 <div class="card-meta">
-                                    <span class="price">PHP {{ number_format((float) $service->servicePrice) }}</span>
+                                    <span class="price">₱{{ number_format((float) $service->servicePrice) }}</span>
                                     <span class="service-duration"><i class="far fa-clock"></i> {{ $service->duration_label }}</span>
                                 </div>
                                 @if ($service->is_home_service)

@@ -37,12 +37,18 @@ class ViewFeedbackController extends Controller
                 ->orderByDesc('f.created_at')
                 ->paginate(20)
                 ->withQueryString();
+
+            // Totals for the summary card (same staff scoping, ignores the search and rating filters).
+            $scope = DB::table('feedback')->when($user->role_slug === 'staff', fn ($q) => $q->where('staffID', $user->getKey()));
+            $distribution = (clone $scope)->selectRaw('rating, COUNT(*) as n')->groupBy('rating')->pluck('n', 'rating')->all();
+            $total = array_sum($distribution);
+            $average = $total ? array_sum(array_map(fn ($r, $n) => $r * $n, array_keys($distribution), $distribution)) / $total : 0;
         } catch (QueryException $e) {
             report($e);
 
-            return view('portal.feedback', ['feedback' => null, 'role' => $user->role_slug, 'loadError' => true]);
+            return view('portal.feedback', ['feedback' => null, 'role' => $user->role_slug, 'loadError' => true, 'total' => 0, 'average' => 0, 'distribution' => []]);
         }
 
-        return view('portal.feedback', ['feedback' => $feedback, 'role' => $user->role_slug, 'loadError' => false]);
+        return view('portal.feedback', ['feedback' => $feedback, 'role' => $user->role_slug, 'loadError' => false, 'total' => $total, 'average' => $average, 'distribution' => $distribution]);
     }
 }

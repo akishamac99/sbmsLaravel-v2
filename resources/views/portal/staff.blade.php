@@ -111,7 +111,7 @@
                                 </label>
                             @endif
                             <label class="field">Contact number
-                                <input class="form-control" name="contactNumber" maxlength="20" value="{{ old('contactNumber') }}">
+                                <input class="form-control" name="contactNumber" maxlength="20" inputmode="tel" placeholder="09171234567" value="{{ old('contactNumber') }}">
                             </label>
                             <label class="field field-full">Specialization
                                 <input class="form-control" name="specialization" maxlength="100" placeholder="e.g. Hair and Makeup Services" value="{{ old('specialization') }}">

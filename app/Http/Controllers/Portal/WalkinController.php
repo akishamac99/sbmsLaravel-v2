@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers\Portal;
 
+use App\Rules\PhilippineMobileNumber;
+use App\Support\PhoneNumber;
 use App\Http\Controllers\Controller;
 use App\Models\Booking;
 use App\Models\Customer;
@@ -105,10 +107,11 @@ class WalkinController extends Controller
         }
 
         $request->merge(['customer_email' => Str::lower(trim((string) $request->input('customer_email'))) ?: null]);
+        PhoneNumber::mergeNormalized($request, 'contact_number');
 
         $validated = $request->validate([
             'customer_name' => ['required', 'string', 'max:100'],
-            'contact_number' => ['required', 'string', 'max:20'],
+            'contact_number' => ['nullable', 'string', 'max:20', new PhilippineMobileNumber],
             'customer_email' => ['nullable', 'email', 'max:100'],
             'service_id' => ['required', 'integer', 'exists:service,serviceID'],
             'booking_time' => ['required', Rule::in(TimeSlots::values())],
@@ -134,7 +137,7 @@ class WalkinController extends Controller
                 : 'The selected staff member is no longer free for that service at that time.');
         }
 
-        $customer = $this->findCustomer($validated['contact_number'], $validated['customer_email']);
+        $customer = $this->findCustomer($validated['contact_number'] ?? null, $validated['customer_email'] ?? null);
 
         if ($customer && $validated['customer_email'] && $customer->email && $customer->email !== $validated['customer_email']) {
             return back()->withInput()->with('error', 'That contact number belongs to a customer with a different email address. Check the details and try again.');
@@ -250,16 +253,16 @@ class WalkinController extends Controller
     /**
      * Returning customers are matched by contact number first, then by email.
      */
-    private function findCustomer(string $contactNumber, ?string $email): ?Customer
+    private function findCustomer(?string $contactNumber, ?string $email): ?Customer
     {
-        return Customer::where('contactNumber', $contactNumber)->first()
+        return ($contactNumber ? Customer::where('contactNumber', $contactNumber)->first() : null)
             ?? ($email ? Customer::where('email', $email)->first() : null);
     }
 
     /**
      * Create the walk-in customer record, or fill in an email that an earlier walk-in visit lacked.
      *
-     * @param  array{customer_name: string, contact_number: string, customer_email: ?string}  $validated
+     * @param  array{customer_name: string, contact_number?: ?string, customer_email: ?string}  $validated
      */
     private function saveCustomer(?Customer $customer, array $validated): Customer
     {
@@ -278,7 +281,7 @@ class WalkinController extends Controller
             'lastName' => $nameParts[1] ?? '',
             'email' => $validated['customer_email'],
             'password' => Hash::make(Str::random(40)),
-            'contactNumber' => $validated['contact_number'],
+            'contactNumber' => $validated['contact_number'] ?? null,
             'accountStatus' => 'active',
             'is_verified' => 0,
             'is_walkin' => true,

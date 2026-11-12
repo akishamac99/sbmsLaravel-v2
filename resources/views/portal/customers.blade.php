@@ -64,7 +64,9 @@
                                 @elseif ($customer->accountStatus === 'pending')
                                     <span class="pill p-pend">Not verified</span>
                                 @else
-                                    @php($statusClass = ['active' => 'p-conf', 'inactive' => 'p-pend', 'blocked' => 'p-dec'][$customer->accountStatus] ?? 'p-pend')
+                                    @php
+                                        $statusClass = ['active' => 'p-conf', 'inactive' => 'p-pend', 'blocked' => 'p-dec'][$customer->accountStatus] ?? 'p-pend';
+                                    @endphp
                                     <span class="pill {{ $statusClass }}">{{ ucfirst($customer->accountStatus) }}</span>
                                 @endif
                             </td>

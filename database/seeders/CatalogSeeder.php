@@ -49,7 +49,7 @@ class CatalogSeeder extends Seeder
     }
 
     // Reads the rows of one "INSERT INTO `table` (...) VALUES (...), (...);" statement.
-    private function parseInsert(string $sql, string $table): array
+    public function parseInsert(string $sql, string $table): array
     {
         $pattern = '/INSERT INTO `' . preg_quote($table, '/') . '` \((.*?)\) VALUES\s*(.*?);\s*\n/s';
 

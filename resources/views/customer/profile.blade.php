@@ -48,7 +48,8 @@
                             <span class="field-hint">Verified. Contact the salon to change it.</span>
                         </label>
                         <label class="field"><span class="field-label">Contact number <span class="req" aria-hidden="true">*</span></span>
-                            <input class="form-control" name="contactNumber" value="{{ old('contactNumber', $customer->contactNumber) }}" required maxlength="20" inputmode="tel">
+                            <input class="form-control" name="contactNumber" value="{{ old('contactNumber', $customer->contactNumber) }}" maxlength="20" inputmode="tel" autocomplete="tel" placeholder="09171234567" aria-describedby="phoneHint">
+                            <span class="field-hint" id="phoneHint">Optional. Philippine mobile number, like 09171234567 or +639171234567.</span>
                         </label>
                         <label class="field field-full">Home address
                             <textarea class="form-control" name="home_address" rows="2" maxlength="500" placeholder="Only needed for home-service bookings">{{ old('home_address', $customer->home_address) }}</textarea>

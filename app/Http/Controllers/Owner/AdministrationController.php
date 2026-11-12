@@ -90,7 +90,7 @@ class AdministrationController extends Controller
             'email' => ['required', 'email', 'max:100', 'unique:salon_staff,email'],
             'role' => ['required', 'in:Manager,Staff'],
             'specialization' => ['nullable', 'string', 'max:100'],
-            'contactNumber' => ['nullable', 'string', 'max:20'],
+            'contactNumber' => ['nullable', 'string', 'max:20', new \App\Rules\PhilippineMobileNumber],
             'password' => ['required', 'string', 'min:8'],
         ]);
 
@@ -120,7 +120,7 @@ class AdministrationController extends Controller
             'email' => ['required', 'email', 'max:100', 'unique:salon_staff,email,'.$staff->getKey().',staffID'],
             'role' => ['required', 'in:Manager,Staff'],
             'specialization' => ['nullable', 'string', 'max:100'],
-            'contactNumber' => ['nullable', 'string', 'max:20'],
+            'contactNumber' => ['nullable', 'string', 'max:20', new \App\Rules\PhilippineMobileNumber],
             'is_active' => ['sometimes', 'boolean'],
         ]);
 

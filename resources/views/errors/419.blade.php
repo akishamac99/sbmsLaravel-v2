@@ -1,0 +1,7 @@
+@extends('errors.layout', ['code' => 419])
+@section('title', 'Page expired')
+@section('icon', '⏳')
+@section('heading', 'This page has expired')
+@section('message', 'You were away for a while, so for your safety this page timed out. Nothing was saved.')
+@section('hint', 'Please go back, refresh the page, and try again.')
+@section('retry', '1')

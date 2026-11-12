@@ -1,0 +1,7 @@
+@extends('errors.layout', ['code' => 503])
+@section('title', 'Back soon')
+@section('icon', '🔧')
+@section('heading', 'We\'ll be right back')
+@section('message', 'The salon system is being updated. Please try again in a few minutes.')
+@section('hint', 'Thank you for your patience.')
+@section('retry', '1')

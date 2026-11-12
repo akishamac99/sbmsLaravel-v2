@@ -1,56 +1,85 @@
-.feedback-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
-    gap: 18px;
+/* Customer feedback page */
+.fb-summary { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 14px; }
+.fb-stat { background: #fff; border: 1px solid rgba(139, 58, 82, .14); border-radius: 14px; padding: 16px 18px; }
+.fb-stat strong { display: block; font-size: 1.7rem; line-height: 1.1; color: var(--brown-dark); }
+.fb-stat span { font-size: .85rem; color: var(--brown-medium); }
+
+.feedback-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); gap: 18px; }
+.feedback-card { border: 1px solid rgba(139, 58, 82, .14); }
+.feedback-card-focus { box-shadow: 0 0 0 3px rgba(139, 58, 82, .25), 0 16px 34px rgba(139, 58, 82, .14); }
+.feedback-meta { color: var(--brown-medium); font-size: 13px; margin-bottom: 14px; }
+.feedback-form { display: grid; gap: 18px; }
+
+.fb-group { border: 0; padding: 0; margin: 0; min-width: 0; }
+.fb-group legend { font-weight: 600; font-size: .92rem; color: var(--brown-dark); padding: 0; margin-bottom: 6px; }
+.fb-rate-row { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+
+/* Radios laid out right-to-left so "this star and all before it" fill with plain CSS. */
+.star-rating { display: inline-flex; flex-direction: row-reverse; justify-content: flex-end; gap: 2px; }
+.star-rating input { position: absolute; opacity: 0; width: 1px; height: 1px; }
+.star-rating label {
+    font-size: 32px; line-height: 1; padding: 4px 3px; cursor: pointer;
+    color: #d8c8cd; transition: color .12s, transform .12s;
 }
-.feedback-card {
-    border: 1px solid rgba(139, 58, 82, 0.14);
+.star-rating label:hover, .star-rating label:hover ~ label,
+.star-rating input:checked ~ label { color: #c5a15b; }
+.star-rating label:hover { transform: scale(1.12); }
+.star-rating input:focus-visible + label { outline: 3px solid var(--rose, #8b3a52); outline-offset: 2px; border-radius: 6px; }
+.fb-rate-word { min-height: 1.3em; font-size: .88rem; font-weight: 600; color: var(--brown-medium); }
+
+.fb-comment-meta { display: flex; justify-content: space-between; gap: 10px; font-size: .8rem; color: var(--brown-medium); margin-top: 4px; }
+.fb-error { color: #a12a3b; font-size: .85rem; margin: 0; }
+.fb-error[hidden] { display: none; }
+
+.fb-section-title { display: flex; align-items: baseline; gap: 10px; }
+.fb-section-title h2 { font-size: 1.15rem; margin: 0; }
+.fb-section-title span { color: var(--brown-medium); font-size: .85rem; }
+
+.feedback-history { display: grid; gap: 14px; }
+.feedback-history-item { border: 1px solid rgba(139, 58, 82, .12); border-radius: 12px; padding: 16px; background: #fff; }
+.feedback-history-head { display: flex; justify-content: space-between; gap: 14px; margin-bottom: 10px; }
+.feedback-history-stars { color: #c5a15b; white-space: nowrap; letter-spacing: 1px; }
+.feedback-history-stars .off { color: #d8c8cd; }
+.feedback-history-item p { margin: 0 0 10px; line-height: 1.55; }
+.fb-chips { display: flex; gap: 8px; flex-wrap: wrap; }
+.fb-chip { background: #f7eef1; color: var(--brown-dark); border-radius: 999px; padding: 3px 10px; font-size: .78rem; }
+
+/* Staff / owner view */
+.fb-overview { display: grid; grid-template-columns: minmax(180px, 240px) 1fr; gap: 24px; align-items: center; }
+.fb-avg { text-align: center; }
+.fb-avg strong { font-size: 2.8rem; line-height: 1; color: var(--brown-dark); display: block; }
+.fb-avg .stars { color: #c5a15b; font-size: 1.2rem; letter-spacing: 2px; }
+.fb-avg .stars .off, .fb-stars .off { color: #d8c8cd; }
+.fb-avg small { color: var(--brown-medium); }
+.fb-bars { display: grid; gap: 6px; }
+.fb-bar { display: grid; grid-template-columns: 38px 1fr 34px; gap: 10px; align-items: center; font-size: .85rem; color: var(--brown-medium); text-decoration: none; }
+.fb-bar:hover { color: var(--brown-dark); }
+.fb-bar .track { height: 9px; background: #f0e4e8; border-radius: 99px; overflow: hidden; }
+.fb-bar .fill { display: block; height: 100%; background: #c5a15b; border-radius: 99px; }
+
+.fb-list { display: grid; gap: 14px; }
+.fb-item { background: #fff; border: 1px solid rgba(139, 58, 82, .12); border-radius: 14px; padding: 16px 18px; }
+.fb-item-head { display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-bottom: 8px; }
+.fb-item-head strong { color: var(--brown-dark); }
+.fb-item-head .when { color: var(--brown-medium); font-size: .82rem; }
+.fb-stars { color: #c5a15b; letter-spacing: 1px; white-space: nowrap; }
+.fb-item p { margin: 0 0 10px; line-height: 1.55; }
+.fb-item p.empty { color: var(--brown-medium); font-style: italic; }
+.fb-empty { text-align: center; padding: 32px 12px; color: var(--brown-medium); }
+
+@media (max-width: 640px) {
+    .fb-overview { grid-template-columns: 1fr; }
+    .feedback-grid { grid-template-columns: 1fr; }
 }
-.feedback-card-focus {
-    box-shadow: 0 16px 34px rgba(139, 58, 82, 0.14);
-    border-color: rgba(139, 58, 82, 0.26);
+@media (prefers-reduced-motion: reduce) {
+    .star-rating label { transition: none; }
+    .star-rating label:hover { transform: none; }
 }
-.feedback-meta {
-    color: var(--brown-medium);
-    font-size: 13px;
-    margin-bottom: 14px;
-}
-.feedback-form {
-    display: grid;
-    gap: 14px;
-}
-.star-rating {
-    display: flex;
-    gap: 8px;
-}
-.star {
-    border: none;
-    background: transparent;
-    font-size: 28px;
-    color: #d8c8cd;
-    cursor: pointer;
-    line-height: 1;
-}
-.star.active {
-    color: #c5a15b;
-}
-.feedback-history {
-    display: grid;
-    gap: 14px;
-}
-.feedback-history-item {
-    border: 1px solid rgba(139, 58, 82, 0.12);
-    border-radius: 12px;
-    padding: 16px;
-    background: #fff;
-}
-.feedback-history-head {
-    display: flex;
-    justify-content: space-between;
-    gap: 14px;
-    margin-bottom: 10px;
-}
-.feedback-history-stars {
-    color: #c5a15b;
-    white-space: nowrap;
-}
+
+/* Feedback filter: one line on wide screens, stacked on phones */
+.fb-filter { display: flex; align-items: flex-end; gap: 14px; flex-wrap: wrap; }
+.fb-filter .form-group { margin: 0; flex: 1 1 220px; }
+.fb-filter .form-group:first-child { flex: 2 1 280px; }
+.fb-filter-actions { display: flex; align-items: center; gap: 10px; flex: 0 0 auto; }
+.fb-filter-actions .btn-primary, .fb-filter-actions .btn-secondary { white-space: nowrap; }
+@media (max-width: 640px) { .fb-filter-actions { width: 100%; } }

@@ -68,4 +68,10 @@ class Customer extends Authenticatable
     {
         $this->notify(new SbmsResetPassword($token, 'customers'));
     }
+
+    // Saved as 09XXXXXXXXX whatever way it was typed; an empty or invalid value is saved as "no number".
+    public function setContactNumberAttribute(?string $value): void
+    {
+        $this->attributes['contactNumber'] = \App\Support\PhoneNumber::normalize($value);
+    }
 }

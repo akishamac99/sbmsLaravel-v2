@@ -83,7 +83,7 @@
                                         <h3>{{ $service->serviceName }}</h3>
                                         <p>{{ \Illuminate\Support\Str::limit($service->description, 80) }}</p>
                                         <div class="service-card-footer">
-                                            <span class="service-price">PHP {{ number_format($service->servicePrice) }}</span>
+                                            <span class="service-price">₱{{ number_format($service->servicePrice) }}</span>
                                             <span class="service-duration"><i class="far fa-clock"></i> {{ $service->duration_label }}</span>
                                         </div>
                                         @if ($service->is_home_service)
@@ -255,7 +255,7 @@
                     </div>
                     <div class="modal-actions">
                         <button type="button" class="btn btn-secondary" data-close-modal>Cancel</button>
-                        <button type="submit" class="btn btn-primary">Save Changes</button>
+                        <button type="submit" class="btn btn-primary">Save changes</button>
                     </div>
                 </form>
             </div>
@@ -267,7 +267,7 @@
         <div class="modal-overlay">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h3>Delete Service</h3>
+                    <h3>Delete service</h3>
                     <button type="button" class="close-modal" data-close-modal>&times;</button>
                 </div>
                 <form method="POST" action="#">

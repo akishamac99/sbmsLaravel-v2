@@ -67,7 +67,7 @@
                                     @if ($booking->can_cancel)
                                         <form method="POST" action="{{ route('customer.bookings.cancel', $booking->bookingRef) }}" data-confirm="Cancel this booking?">
                                             @csrf
-                                            <button type="submit" class="menu-danger"><i class="fas fa-times"></i> Cancel booking</button>
+                                            <button type="submit" class="menu-danger"><i class="fas fa-ban"></i> Cancel booking</button>
                                         </form>
                                     @endif
                                 </div>

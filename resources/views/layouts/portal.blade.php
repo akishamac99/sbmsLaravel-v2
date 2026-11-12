@@ -20,6 +20,7 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     @vite(['resources/css/style.css', 'resources/js/app.js'])
         @stack('head')
+    @include('partials.a11y-widget')
 </head>
 <body>
 <div class="dashboard-container">
@@ -84,12 +85,12 @@
     ]);
 @endphp
 @if ($toasts)
-    <div class="toast-stack" role="status" aria-live="polite">
+    <div class="toast-stack" role="status" aria-live="polite" aria-atomic="true">
         @foreach ($toasts as [$type, $text])
             <div class="toast toast-{{ $type }}" data-toast>
                 <i class="fas {{ $type === 'ok' ? 'fa-check-circle' : 'fa-exclamation-circle' }}"></i>
                 <span>{{ $text }}</span>
-                <button type="button" class="toast-close" aria-label="Close" data-toast-close>&times;</button>
+                <button type="button" class="toast-close" aria-label="Close message" data-toast-close>&times;</button>
             </div>
         @endforeach
     </div>
@@ -100,7 +101,17 @@
                 setTimeout(function () { toast.remove(); }, 250);
             };
             toast.querySelector('[data-toast-close]').addEventListener('click', hide);
-            setTimeout(hide, toast.classList.contains('toast-err') ? 8000 : 5000);
+            var timer = null;
+            var start = function () {
+                if (document.documentElement.classList.contains('a11y-sticky')) return;
+                timer = setTimeout(hide, toast.classList.contains('toast-err') ? 12000 : 8000);
+            };
+            var stop = function () { clearTimeout(timer); };
+            toast.addEventListener('mouseenter', stop);
+            toast.addEventListener('focusin', stop);
+            toast.addEventListener('mouseleave', start);
+            toast.addEventListener('focusout', start);
+            start();
         });
     </script>
 @endif

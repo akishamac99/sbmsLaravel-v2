@@ -17,7 +17,7 @@
     --pink-mid:       #f5e8eb;
     --brown-dark:     #1e1014;
     --brown-medium:   #6b4a54;
-    --brown-light:    #9e7a84;
+    --brown-light:    #7a5560;   /* was #9e7a84: contrast 3.8:1; now 6.4:1 on white (WCAG AA needs 4.5:1) */
     --white:          #ffffff;
     --success:        #2E7D32;
     --success-bg:     #E8F5E9;
